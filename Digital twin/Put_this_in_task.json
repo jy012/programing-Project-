@@ -1,0 +1,44 @@
+{
+    "tasks": [
+        {
+            "type": "shell",
+            "label": "C/C++: clang++ compilar archivo activo",
+            "command": "/usr/bin/clang++",
+            "args": [
+                "-std=c++23",
+                "-Wall",
+                "-g",
+                "${workspaceFolder}/prove.cpp",
+                "${workspaceFolder}/imgui.cpp",
+                "${workspaceFolder}/imgui_draw.cpp",
+                "${workspaceFolder}/imgui_widgets.cpp",
+                "${workspaceFolder}/imgui_tables.cpp",
+                "${workspaceFolder}/imgui_demo.cpp",
+                "${workspaceFolder}/imgui_impl_glfw.cpp",
+                "${workspaceFolder}/imgui_impl_opengl3.cpp",
+                "-o",
+                "${workspaceFolder}/outDebug",
+                "-I${workspaceFolder}",
+                "-I/opt/homebrew/include",
+                "-L/opt/homebrew/lib",
+                "-lglfw",
+                "-framework", "OpenGL",
+                "-framework", "Cocoa",
+                "-framework", "IOKit",
+                "-framework", "CoreVideo"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Compilación completa de ImGui "
+        }
+    ],
+    "version": "2.0.0"
+}
