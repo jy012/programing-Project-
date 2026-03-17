@@ -16,4 +16,16 @@ g++ main.cpp \
     -o main
 
 
-for windows :
+for windows : (I NEED TO PROVE IT )
+
+g++ main.cpp ^
+    dependecies/imgui/imgui*.cpp ^
+    dependecies/imgui/backends/imgui_impl_glfw.cpp ^
+    dependecies/imgui/backends/imgui_impl_opengl3.cpp ^
+    -I dependecies/imgui ^
+    -I dependecies/imgui/backends ^
+    -I dependecies/GFLW/include ^
+    -L dependecies/GFLW/lib-mingw-w64 ^
+    -lglfw3 -lopengl32 -lgdi32 -luser32 -lshell32 ^
+    -o mi_programa.exe
+
