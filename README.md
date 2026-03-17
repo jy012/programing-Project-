@@ -4,7 +4,7 @@ with this files the button on the top rigth corner works. (when you press the bu
 if you want to using comand use this one : 
 
 for mac :
-g++ main.cpp \
+g++ prove.cpp \
     dependecies/imgui/imgui*.cpp \
     dependecies/imgui/backends/imgui_impl_glfw.cpp \
     dependecies/imgui/backends/imgui_impl_opengl3.cpp \
@@ -18,7 +18,7 @@ g++ main.cpp \
 
 for windows : (I NEED TO PROVE IT )
 
-g++ main.cpp ^
+g++ prove.cpp ^
     dependecies/imgui/imgui*.cpp ^
     dependecies/imgui/backends/imgui_impl_glfw.cpp ^
     dependecies/imgui/backends/imgui_impl_opengl3.cpp ^
