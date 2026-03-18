@@ -27,6 +27,19 @@ dependecies/imgui/backends/imgui_impl_opengl3.cpp ^
 -I dependecies/GFLW/include ^
 -L dependecies/GFLW/lib-mingw-w64 ^
 -lglfw3 -lopengl32 -lgdi32 -luser32 -lshell32 ^
--o mi_programa.exe
+-o main.exe
+
+for linux: (I dont know if works :C):
+
+g++ -g "${PWD}/main.cpp" \
+    "${PWD}/dependecies/imgui/imgui"*.cpp \
+    "${PWD}/dependecies/imgui/backends/imgui_impl_glfw.cpp" \
+    "${PWD}/dependecies/imgui/backends/imgui_impl_opengl3.cpp" \
+    -I "${PWD}/dependecies/imgui" \
+    -I "${PWD}/dependecies/imgui/backends" \
+    -I "${PWD}/dependecies/GFLW/include" \
+    -lglfw -lGL -ldl -lpthread -lX11 \
+    -o main
+
 
 
