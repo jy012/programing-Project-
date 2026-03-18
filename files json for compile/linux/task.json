@@ -1,0 +1,36 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "compile with ImGui",
+            "command": "/usr/bin/g++",
+            "args": [
+                "-g",
+                "${file}",
+                "${workspaceFolder}/dependecies/imgui/imgui*.cpp",
+                "${workspaceFolder}/dependecies/imgui/backends/imgui_impl_glfw.cpp",
+                "${workspaceFolder}/dependecies/imgui/backends/imgui_impl_opengl3.cpp",
+                "-I", "${workspaceFolder}/dependecies/imgui",
+                "-I", "${workspaceFolder}/dependecies/imgui/backends",
+                "-I", "${workspaceFolder}/dependecies/GFLW/include",
+                "-L", "${workspaceFolder}/dependecies/GFLW/lib-linux", 
+                "-lglfw",
+                "-lGL",
+                "-ldl",
+                "-lpthread",
+                "-lX11",
+                "-o",
+                "${fileDirname}/${fileBasenameNoExtension}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": ["$gcc"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
