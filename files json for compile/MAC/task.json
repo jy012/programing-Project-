@@ -1,0 +1,31 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "compile with Imgui",
+            "type": "shell",
+            "command": "/usr/bin/g++",
+            "args": [
+                "-g",
+                "${file}", 
+                "${workspaceFolder}/dependecies/imgui/*.cpp",
+                "${workspaceFolder}/dependecies/imgui/backends/imgui_impl_glfw.cpp",
+                "${workspaceFolder}/dependecies/imgui/backends/imgui_impl_opengl3.cpp",
+                "-I", "${workspaceFolder}/dependecies/imgui",
+                "-I", "${workspaceFolder}/dependecies/imgui/backends",
+                "-I", "/opt/homebrew/include",
+                "-L", "/opt/homebrew/lib",
+                "-lglfw",
+                "-framework", "OpenGL",
+                "-framework", "Cocoa",
+                "-framework", "IOKit",
+                "-framework", "CoreVideo",
+                "-o", "${fileDirname}/${fileBasenameNoExtension}"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
