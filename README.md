@@ -1,5 +1,6 @@
-if you want to compile more esay you need to put this task.json, and launch.json files in your vscode configuration.
-with this files the button on the top rigth corner works. (when you press the button there will be some options, choose “Debug imgui“)
+if you want to compile more esay, you need to put this  taks.json, and launch.json files,  in your vscode configuration.
+with this files the button on the top rigth corner works. (when you press the button there will be some options, choose “Debug imgui“.
+the files are in the folder "files json for compile")
 
 if you want to using comand use this one : 
 
