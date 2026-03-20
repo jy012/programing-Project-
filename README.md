@@ -19,7 +19,7 @@ g++ prove.cpp \
 
 for windows : (I NEED TO PROVE IT )
 
-g++ mi_archivo.cpp ^
+g++ prove.cpp ^
 dependecies/imgui/imgui*.cpp ^
 dependecies/imgui/backends/imgui_impl_glfw.cpp ^
 dependecies/imgui/backends/imgui_impl_opengl3.cpp ^
@@ -32,7 +32,7 @@ dependecies/imgui/backends/imgui_impl_opengl3.cpp ^
 
 for linux: (I dont know if works :C):
 
-g++ -g "${PWD}/main.cpp" \
+g++ -g "${PWD}/prove.cpp" \
     "${PWD}/dependecies/imgui/imgui"*.cpp \
     "${PWD}/dependecies/imgui/backends/imgui_impl_glfw.cpp" \
     "${PWD}/dependecies/imgui/backends/imgui_impl_opengl3.cpp" \
