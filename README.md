@@ -14,7 +14,7 @@ g++ prove.cpp \
     -I /opt/homebrew/include \
     -L /opt/homebrew/lib \
     -lglfw -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo \
-    -o main
+    -o prove
 
 
 for windows : (I NEED TO PROVE IT )
@@ -28,7 +28,7 @@ dependecies/imgui/backends/imgui_impl_opengl3.cpp ^
 -I dependecies/GFLW/include ^
 -L dependecies/GFLW/lib-mingw-w64 ^
 -lglfw3 -lopengl32 -lgdi32 -luser32 -lshell32 ^
--o main.exe
+-o prove.exe
 
 for linux: (I dont know if works :C):
 
@@ -40,7 +40,7 @@ g++ -g "${PWD}/prove.cpp" \
     -I "${PWD}/dependecies/imgui/backends" \
     -I "${PWD}/dependecies/GFLW/include" \
     -lglfw -lGL -ldl -lpthread -lX11 \
-    -o main
+    -o prove
 
 
 
