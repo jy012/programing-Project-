@@ -2,17 +2,21 @@
     "version": "0.2.0",
     "configurations": [
         {
+          {
+    "version": "0.2.0",
+    "configurations": [
+        {
             "name": "Debug imgui",
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/${fileBasenameNoExtension}.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
+            "cwd": "C:\\mingw64\\bin",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
-            "miDebuggerPath": "gdb.exe",
+            "miDebuggerPath": "C:\\mingw64\\bin\\gdb.exe",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -21,6 +25,11 @@
                 }
             ],
             "preLaunchTask": "compile with ImGui"
+
+        }
+    ]
+}
+
         }
     ]
 }
