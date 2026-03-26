@@ -1,4 +1,4 @@
-if you want to compile more esay, you need to put this  taks.json, and launch.json files,  in your vscode configuration.
+if you want to compile more easy, you need to put this  task.json, and launch.json files,  in your vscode configuration.
 
 with this files the button on the top rigth corner works. (when you press the button there will be some options, choose the configuration name. (the name of the configuration changue  if you use windows, mac etc ... are in the folder "files json for compile")
 
