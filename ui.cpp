@@ -2,8 +2,8 @@
 #include "imgui_impl_glfw.h" // adapter for  GFLW
 #include "imgui_impl_opengl3.h" // adapter for  open GFLW 3
 #include <iostream>
+#include <imgui_internal.h>
 #define GL_SILENCE_DEPRECATION // Silense of obsolet fucntions in opengl
-
 #include <stdio.h>
 #include <GLFW/glfw3.h> // librery f or create windows  adn  contexts opengl
 #include <cmath>
@@ -62,7 +62,6 @@ int main() {
 // open variables 
 
     bool open_window1 = false;    
-    bool open_prove =true ;  
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -79,12 +78,11 @@ int main() {
     style.FontScaleDpi = main_scale; 
     
     //style 
-    style.FrameRounding = 6.0f;
+   style.WindowRounding= 8.0f;
 
 
-    // 3. Setup ImGui
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+
+    // 3. initialize backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
@@ -137,25 +135,79 @@ int main() {
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(2.0f/255, 82.0f/255, 12.0f/255, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f));
-        ImGui::SetNextWindowPos(ImVec2(0,0));        
-        ImGui::SetNextWindowSize(ImVec2(300,height));
-        ImGui::Begin("prove",&open_prove,ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize| ImGuiWindowFlags_NoMove);
-        ImGui::Text("Proveeeee");
-       
+        ImGui::SetNextWindowPos(ImVec2(0,0));     
+        ImGui::SetNextWindowSize(ImVec2(340,height));
+        // configuration of the header 
         
-        if (ImGui::Button("halooo")){
+        ImGui::Begin("menu",NULL,ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize| ImGuiWindowFlags_NoMove| ImGuiWindowFlags_NoTitleBar);{
             
+            // configuration of the header 
+            bool estaActiva = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows); // know if we focus in this window 
+            ImVec4 colorHeader = estaActiva 
+                ? ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f)   
+                : ImVec4(2.0f/255, 82.0f/255, 12.0f/255, 1.0f); 
+
+
+             ImVec2 padding = ImGui::GetStyle().WindowPadding;  // this take of the padding 
+            ImGui::PushStyleColor(ImGuiCol_ChildBg,ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, colorHeader);
+            ImGui::SetCursorPos(ImVec2(0,0));
+            if (ImGui::BeginChild("Header",ImVec2(340, 40),false)){
+                const char* title = "Objects in the air";
+               ImVec2 textSize = ImGui::CalcTextSize(title);
+               float posX = (340 - textSize.x) * 0.5f;
+               float posY = (30.0f - textSize.y) * 0.5f;
+               ImGui::SetCursorPos(ImVec2(posX, posY));
+               ImGui::Text("%s",title);
+            }
+            ImGui::EndChild();
+            ImGui::PopStyleColor(2);
+
+
+            // buttons menu
+           
         }
-
-
-
-        ImGui::Checkbox("yes ?",&open_window1);
-        ImGui::Text("width %2.0d",width);
-        ImGui::Text("height %2.0d",height);
-
-
+        
         ImGui::End();
-        ImGui::PopStyleColor(3); 
+        ImGui::PopStyleColor(3);
+
+         // buttons menu
+        ImGui::SetNextWindowPos(ImVec2(340.0f,height/2.0f));  
+        ImGui::SetNextWindowSize(ImVec2(50,200));
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 2.0f);
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(81.0f/255, 81.0f/255, 81.0f/255, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ChildBg,ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f)); // normal color
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 1.0f)); //  when they dected the mouse
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 0.1f, 0.1f, 1.0f)); // whent they do click 
+           
+        if (ImGui::Begin("buttons",NULL,ImGuiChildFlags_Borders|ImGuiWindowFlags_NoScrollbar)){
+                
+              // made buttons have no space with each other 
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+                float total_width = ImGui::GetContentRegionAvail().x;
+                float total_height = ImGui::GetContentRegionAvail().y;
+    
+                 // Dividimos el ancho total entre 4
+                ImVec2 size_Button = ImVec2(total_width , total_height/4.0f);
+
+                if (ImGui::Button("X", size_Button)) { /* ... */ }
+               
+                 if (ImGui::Button("Y", size_Button)) { /* ... */ }
+                 
+                if (ImGui::Button("Z", size_Button)) { /* ... */ }
+           
+                 if (ImGui::Button("W", size_Button)) { /* ... */ }
+
+                ImGui::PopStyleVar();
+
+            }
+
+            ImGui::End();
+            ImGui::PopStyleVar(2);
+            ImGui::PopStyleColor(5);
+
 
 
         // Render
