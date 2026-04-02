@@ -94,20 +94,23 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+
         // Draws on the mian window 
         ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
         int width, height;
         glfwGetWindowSize(window, &width, &height);
-        ImVec2 p = ImVec2(width-(width / 2.5f),height/2.0f);
+
+        ImVec2 p = ImVec2( width *0.6f,height * 0.5f);
         float thickness = 1.0f;
         static float angle = 0.0f;
 
         // radar draw
         angle += ImGui::GetIO().DeltaTime * 2.0f; // Velocidad
-        float large = 400.0f; // large of the line 
+        float large =  height *0.45; // large of the line 
         const int line_trail = 100;       // the lines that  make the trail
         const float rate_d = 0.01f;     // at what rate the lines  dissapear
         // animation of the trail 
+        float radius = (height *0.45f); 
 
 
         for (int i = line_trail; i > 0; i--) { 
@@ -126,17 +129,17 @@ int main() {
 
         ImU32 color = IM_COL32(0,255,0,255);
         draw_list ->AddCircleFilled(p,5.0f,color,0); 
-        draw_list ->AddCircle(p,50.0f,color,0,thickness); draw_list ->AddCircle(p,100.0f,color,0,thickness);
-        draw_list ->AddCircle(p,150.0f,color,0,thickness); draw_list ->AddCircle(p,200.0f,color,0,thickness);
-        draw_list ->AddCircle(p,250.0f,color,0,thickness); draw_list ->AddCircle(p,300.0f,color,0,thickness);
-        draw_list ->AddCircle(p,350.0f,color,0,thickness); draw_list ->AddCircle(p,400.0f,color,0,thickness); 
+        draw_list ->AddCircle(p,(radius *0.125f),color,0,thickness); draw_list ->AddCircle(p,(radius *0.25f),color,0,thickness);
+        draw_list ->AddCircle(p,(radius *0.375f),color,0,thickness); draw_list ->AddCircle(p,(radius *0.5f),color,0,thickness);
+        draw_list ->AddCircle(p,(radius* 0.625f),color,0,thickness); draw_list ->AddCircle(p,(radius* 0.75f),color,0,thickness);
+        draw_list ->AddCircle(p,(radius* 0.875),color,0,thickness); draw_list ->AddCircle(p,radius,color,0,thickness); 
  
         // menu
         ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(2.0f/255, 82.0f/255, 12.0f/255, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f));
         ImGui::SetNextWindowPos(ImVec2(0,0));     
-        ImGui::SetNextWindowSize(ImVec2(340,height));
+        ImGui::SetNextWindowSize(ImVec2((width*0.22f),height));
         // configuration of the header 
         
         ImGui::Begin("menu",NULL,ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize| ImGuiWindowFlags_NoMove| ImGuiWindowFlags_NoTitleBar);{
@@ -147,12 +150,14 @@ int main() {
                 ? ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f)   
                 : ImVec4(2.0f/255, 82.0f/255, 12.0f/255, 1.0f); 
 
+            // header
 
-             ImVec2 padding = ImGui::GetStyle().WindowPadding;  // this take of the padding 
+            ImVec2 padding = ImGui::GetStyle().WindowPadding;  // this take of the padding 
             ImGui::PushStyleColor(ImGuiCol_ChildBg,ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_ChildBg, colorHeader);
             ImGui::SetCursorPos(ImVec2(0,0));
-            if (ImGui::BeginChild("Header",ImVec2(340, 40),false)){
+
+            if (ImGui::BeginChild("Header",ImVec2(width*0.22f,height*0.05f),false)){
                 const char* title = "Objects in the air";
                ImVec2 textSize = ImGui::CalcTextSize(title);
                float posX = (340 - textSize.x) * 0.5f;
@@ -164,17 +169,17 @@ int main() {
             ImGui::PopStyleColor(2);
 
 
-            // buttons menu
-           
+
+            ImGui::Text("largo %2.f | centro %.2d",large , height);
         }
         
         ImGui::End();
         ImGui::PopStyleColor(3);
 
          // buttons menu
-        ImGui::SetNextWindowPos(ImVec2(340.0f,height/2.0f));  
-        ImGui::SetNextWindowSize(ImVec2(50,200));
-        ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 2.0f);
+        ImGui::SetNextWindowPos(ImVec2(width*0.22f,height*0.05f));  
+        ImGui::SetNextWindowSize(ImVec2(width*0.035f,(width*0.035f)*4.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 3.0f);
         ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(81.0f/255, 81.0f/255, 81.0f/255, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ChildBg,ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
@@ -203,6 +208,7 @@ int main() {
                 ImGui::PopStyleVar();
 
             }
+           
 
             ImGui::End();
             ImGui::PopStyleVar(2);
