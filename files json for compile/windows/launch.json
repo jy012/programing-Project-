@@ -2,17 +2,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-          {
-    "version": "0.2.0",
-    "configurations": [
-        {
             "name": "Debug imgui",
             "type": "cppdbg",
             "request": "launch",
             "program": "${fileDirname}/${fileBasenameNoExtension}.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "C:\\mingw64\\bin",
+            "cwd": "${fileDirname}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
@@ -25,10 +21,6 @@
                 }
             ],
             "preLaunchTask": "compile with ImGui"
-
-        }
-    ]
-}
 
         }
     ]
