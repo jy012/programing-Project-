@@ -14,7 +14,7 @@
                 "-I", "${workspaceFolder}/dependecies/imgui",
                 "-I", "${workspaceFolder}/dependecies/imgui/backends",
                 "-I", "${workspaceFolder}/dependecies/GFLW/include",
-                "-L", "${workspaceFolder}/dependecies/GFLW/lib-mingw-w64",
+                "-L", "${workspaceFolder}/dependecies/GFLW/glfw-3.4.bin.WIN64/lib-mingw-w64",
                 "-lglfw3",
                 "-lopengl32",
                 "-lgdi32",
