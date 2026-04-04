@@ -61,7 +61,8 @@ int main() {
 
 // open variables 
 
-    bool open_window1 = false;    
+    bool open_window1 = false;  
+    static bool no_collapsed = true;  
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -129,65 +130,106 @@ int main() {
 
         ImU32 color = IM_COL32(0,255,0,255);
         draw_list ->AddCircleFilled(p,5.0f,color,0); 
-        draw_list ->AddCircle(p,(radius *0.125f),color,0,thickness); draw_list ->AddCircle(p,(radius *0.25f),color,0,thickness);
-        draw_list ->AddCircle(p,(radius *0.375f),color,0,thickness); draw_list ->AddCircle(p,(radius *0.5f),color,0,thickness);
-        draw_list ->AddCircle(p,(radius* 0.625f),color,0,thickness); draw_list ->AddCircle(p,(radius* 0.75f),color,0,thickness);
-        draw_list ->AddCircle(p,(radius* 0.875),color,0,thickness); draw_list ->AddCircle(p,radius,color,0,thickness); 
- 
-        // menu
-        ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(2.0f/255, 82.0f/255, 12.0f/255, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f));
-        ImGui::SetNextWindowPos(ImVec2(0,0));     
-        ImGui::SetNextWindowSize(ImVec2((width*0.22f),height));
-        // configuration of the header 
-        
-        ImGui::Begin("menu",NULL,ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize| ImGuiWindowFlags_NoMove| ImGuiWindowFlags_NoTitleBar);{
-            
+        draw_list ->AddCircle(p,(radius *0.125f),color,0,thickness);
+        draw_list ->AddCircle(p,(radius *0.25f),color,0,thickness);
+        draw_list ->AddCircle(p,(radius *0.375f),color,0,thickness); 
+        draw_list ->AddCircle(p,(radius *0.5f),color,0,thickness);
+        draw_list ->AddCircle(p,(radius* 0.625f),color,0,thickness); 
+        draw_list ->AddCircle(p,(radius* 0.75f),color,0,thickness);
+        draw_list ->AddCircle(p,(radius* 0.875f),color,0,thickness);
+        draw_list ->AddCircle(p,radius,color,0,thickness); 
+         
+   
+        float constant_height =height * 0.5f;
+
+        draw_list ->AddLine(ImVec2(0.0f,((constant_height - radius)-2.0f)),ImVec2(width,((height * 0.5f)  - radius)-2.0f),IM_COL32(255, 0, 0, 50), 2.0f);
+        draw_list ->AddLine(ImVec2(0.0f,((constant_height - (radius* 0.875f))-2.0f)),ImVec2(width,((height * 0.5f)  - (radius* 0.875f))-2.0f),IM_COL32(255, 0, 0, 50), 2.0f);
+        draw_list ->AddLine(ImVec2(0.0f,((constant_height - (radius* 0.75f))-2.0f)),ImVec2(width,((height * 0.5f)  - (radius* 0.75f))-2.0f),IM_COL32(255, 0, 0, 50), 2.0f);
+        draw_list ->AddLine(ImVec2(0.0f,((constant_height - (radius* 0.625f))-2.0f)),ImVec2(width,((height * 0.5f)  - (radius* 0.625f)-2.0f)),IM_COL32(255, 0, 0, 50), 2.0f);
+        draw_list ->AddLine(ImVec2(0.0f,((constant_height - (radius* 0.5f))-2.0f)),ImVec2(width,((height * 0.5f)  - (radius* 0.5f))-2.0f),IM_COL32(255, 0, 0, 50), 2.0f);
+        draw_list ->AddLine(ImVec2(0.0f,((constant_height - (radius* 0.375f))-2.0f)),ImVec2(width,((height * 0.5f)  - radius * 0.375f)-2.0f),IM_COL32(255, 0, 0, 50), 2.0f);
+
+
+
+
+
+        if (no_collapsed){
+             // menu
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(2.0f/255, 82.0f/255, 12.0f/255, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f));
+            ImGui::SetNextWindowPos(ImVec2(0,0));     
+            ImGui::SetNextWindowSize(ImVec2((width*0.22f),height));
             // configuration of the header 
-            bool estaActiva = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows); // know if we focus in this window 
-            ImVec4 colorHeader = estaActiva 
-                ? ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f)   
-                : ImVec4(2.0f/255, 82.0f/255, 12.0f/255, 1.0f); 
+            
+            ImGui::Begin("menu",NULL,ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize| ImGuiWindowFlags_NoMove| ImGuiWindowFlags_NoTitleBar);{
+                
+                // configuration of the header 
+                bool estaActiva = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows); // know if we focus in this window 
+                ImVec4 colorHeader = estaActiva 
+                    ? ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f)   
+                    : ImVec4(2.0f/255, 82.0f/255, 12.0f/255, 1.0f); 
 
-            // header
+                // header
 
-            ImVec2 padding = ImGui::GetStyle().WindowPadding;  // this take of the padding 
-            ImGui::PushStyleColor(ImGuiCol_ChildBg,ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f));
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, colorHeader);
-            ImGui::SetCursorPos(ImVec2(0,0));
+                ImVec2 padding = ImGui::GetStyle().WindowPadding;  // this take of the padding 
+                ImGui::PushStyleColor(ImGuiCol_ChildBg,ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, colorHeader);
+                ImGui::SetCursorPos(ImVec2(0,0));
 
-            if (ImGui::BeginChild("Header",ImVec2(width*0.22f,height*0.05f),false)){
-                const char* title = "Objects in the air";
-               ImVec2 textSize = ImGui::CalcTextSize(title);
-               float posX = (340 - textSize.x) * 0.5f;
-               float posY = (30.0f - textSize.y) * 0.5f;
-               ImGui::SetCursorPos(ImVec2(posX, posY));
-               ImGui::Text("%s",title);
+                if (ImGui::BeginChild("Header",ImVec2(width*0.22f,height*0.05f),false)){
+                    const char* title = "Objects in the air";
+                ImVec2 textSize = ImGui::CalcTextSize(title);
+                float posX = (width*0.22f - textSize.x) * 0.5f;
+                float posY = (height*0.05f- textSize.y) * 0.5f;
+                ImGui::SetCursorPos(ImVec2(posX, posY));
+                ImGui::Text("%s",title);
+                }
+                ImGui::EndChild();
+                ImGui::PopStyleColor(2);
+
+
+
+                ImGui::Text("largo %2.f | centro %.2d",large , height);
             }
-            ImGui::EndChild();
-            ImGui::PopStyleColor(2);
+            
+            ImGui::End();
+            ImGui::PopStyleColor(3);
 
-
-
-            ImGui::Text("largo %2.f | centro %.2d",large , height);
         }
-        
-        ImGui::End();
-        ImGui::PopStyleColor(3);
+       
 
          // buttons menu
-        ImGui::SetNextWindowPos(ImVec2(width*0.22f,height*0.05f));  
+
+         ImVec2 buttons_position_1(width*0.22f,height*0.05f);
+         ImVec2 buttons_position_2(width*0,height*0.05f);
+         ImVec2 final_buttons_position (0.0f,0.0f);
+
+        if (no_collapsed){
+            final_buttons_position = buttons_position_1;
+
+        }
+        else {
+             final_buttons_position = buttons_position_2;
+
+        } 
+         ImVec2 colllapsed_button_position((final_buttons_position.x)+(width*0.035f),width*0.045f);
+
+         
+       
+        
+        ImGui::SetNextWindowPos(final_buttons_position);  
         ImGui::SetNextWindowSize(ImVec2(width*0.035f,(width*0.035f)*4.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 3.0f);
         ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(81.0f/255, 81.0f/255, 81.0f/255, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ChildBg,ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f)); // normal color
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 1.0f)); //  when they dected the mouse
         ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 0.1f, 0.1f, 1.0f)); // whent they do click 
+        
            
-        if (ImGui::Begin("buttons",NULL,ImGuiChildFlags_Borders|ImGuiWindowFlags_NoScrollbar)){
+        if (ImGui::Begin("buttons",NULL,ImGuiChildFlags_Borders|ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoResize)){
                 
               // made buttons have no space with each other 
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -196,7 +238,7 @@ int main() {
     
                  // Dividimos el ancho total entre 4
                 ImVec2 size_Button = ImVec2(total_width , total_height/4.0f);
-
+        
                 if (ImGui::Button("X", size_Button)) { /* ... */ }
                
                  if (ImGui::Button("Y", size_Button)) { /* ... */ }
@@ -206,16 +248,47 @@ int main() {
                  if (ImGui::Button("W", size_Button)) { /* ... */ }
 
                 ImGui::PopStyleVar();
+               
 
             }
+
+            ImGui::End();
+            ImGui::PopStyleVar(2);
+            ImGui::PopStyleColor(5);
+            
            
+            ImGui::SetNextWindowPos(ImVec2(colllapsed_button_position));
+            ImGui::SetNextWindowSize(ImVec2((width*0.035f)/3.0f,radius *0.44f));
+            ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 3.0f);
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(81.0f/255, 81.0f/255, 81.0f/255, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f));
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f)); // normal color
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 1.0f)); //  when they dected the mouse
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 0.1f, 0.1f, 1.0f)); // whent they do click 
+
+            if (ImGui::Begin("BotonControl", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoScrollbar)){
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+                float total_width = ImGui::GetContentRegionAvail().x;
+                float total_height = ImGui::GetContentRegionAvail().y;
+                ImVec2 size_Button = ImVec2(total_width , total_height);
+
+                if (ImGui::Button(no_collapsed ? "<" : ">", size_Button)) {
+                no_collapsed = !no_collapsed; // Alternar estado
+                
+                }
+
+                ImGui::PopStyleVar();
+            }
+                
+            
+            
 
             ImGui::End();
             ImGui::PopStyleVar(2);
             ImGui::PopStyleColor(5);
 
-
-
+            
         // Render
         ImGui::Render();
         int display_w, display_h;
