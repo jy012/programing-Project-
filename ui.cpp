@@ -78,11 +78,6 @@ int main() {
     style.ScaleAllSizes(main_scale);      
     style.FontScaleDpi = main_scale; 
     
-    //style 
-   style.WindowRounding= 8.0f;
-
-
-
     // 3. initialize backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
@@ -96,11 +91,14 @@ int main() {
         ImGui::NewFrame();
 
 
-        // Draws on the mian window 
+        // Draws on the main window 
         ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
         int width, height;
         glfwGetWindowSize(window, &width, &height);
 
+        static ImDrawListSplitter splitter;
+        // chanel 1 
+        splitter.Split(draw_list, 2);
         ImVec2 p = ImVec2( width *0.6f,height * 0.5f);
         float thickness = 1.0f;
         static float angle = 0.0f;
@@ -113,6 +111,7 @@ int main() {
         // animation of the trail 
         float radius = (height *0.45f); 
 
+        splitter.SetCurrentChannel(draw_list, 1);
 
         for (int i = line_trail; i > 0; i--) { 
             float old_angle = angle - (i * rate_d);
@@ -128,28 +127,61 @@ int main() {
         ImVec2 p2 = ImVec2(p.x + std::cos(angle) * large,  p.y + std::sin(angle) * large); //position and motion
         draw_list ->AddLine(p, p2, IM_COL32(0, 255, 0, 255), 2.0f);
 
+        float constant_height = height * 0.5f;
+
+        // Circles
+
         ImU32 color = IM_COL32(0,255,0,255);
-        draw_list ->AddCircleFilled(p,5.0f,color,0); 
-        draw_list ->AddCircle(p,(radius *0.125f),color,0,thickness);
-        draw_list ->AddCircle(p,(radius *0.25f),color,0,thickness);
-        draw_list ->AddCircle(p,(radius *0.375f),color,0,thickness); 
-        draw_list ->AddCircle(p,(radius *0.5f),color,0,thickness);
-        draw_list ->AddCircle(p,(radius* 0.625f),color,0,thickness); 
-        draw_list ->AddCircle(p,(radius* 0.75f),color,0,thickness);
-        draw_list ->AddCircle(p,(radius* 0.875f),color,0,thickness);
-        draw_list ->AddCircle(p,radius,color,0,thickness); 
-         
-   
-        float constant_height =height * 0.5f;
 
-        draw_list ->AddLine(ImVec2(0.0f,((constant_height - radius)-2.0f)),ImVec2(width,((height * 0.5f)  - radius)-2.0f),IM_COL32(255, 0, 0, 50), 2.0f);
-        draw_list ->AddLine(ImVec2(0.0f,((constant_height - (radius* 0.875f))-2.0f)),ImVec2(width,((height * 0.5f)  - (radius* 0.875f))-2.0f),IM_COL32(255, 0, 0, 50), 2.0f);
-        draw_list ->AddLine(ImVec2(0.0f,((constant_height - (radius* 0.75f))-2.0f)),ImVec2(width,((height * 0.5f)  - (radius* 0.75f))-2.0f),IM_COL32(255, 0, 0, 50), 2.0f);
-        draw_list ->AddLine(ImVec2(0.0f,((constant_height - (radius* 0.625f))-2.0f)),ImVec2(width,((height * 0.5f)  - (radius* 0.625f)-2.0f)),IM_COL32(255, 0, 0, 50), 2.0f);
-        draw_list ->AddLine(ImVec2(0.0f,((constant_height - (radius* 0.5f))-2.0f)),ImVec2(width,((height * 0.5f)  - (radius* 0.5f))-2.0f),IM_COL32(255, 0, 0, 50), 2.0f);
-        draw_list ->AddLine(ImVec2(0.0f,((constant_height - (radius* 0.375f))-2.0f)),ImVec2(width,((height * 0.5f)  - radius * 0.375f)-2.0f),IM_COL32(255, 0, 0, 50), 2.0f);
+            for (int i = 0; i <= 8; i++) {
+            float multiplier = (i * 0.125f);
+            float f_radius = radius * multiplier;
+            draw_list ->AddCircle(p,f_radius,color,0,thickness); 
+        }
+        float H1 = (constant_height - (radius));
+        float H2 = (constant_height + (radius));
 
+        float L1 = ((width *0.6f) - (radius));
+        float L2 = ((width *0.6f) + (radius));
 
+         draw_list->AddLine(ImVec2((width *0.6f), H1), ImVec2((width *0.6f), H2), IM_COL32(0, 255, 0, 255), 2.0f);
+         draw_list->AddLine(ImVec2(L1, (height *0.5f)), ImVec2(L2,(height *0.5f)), IM_COL32(0, 255, 0, 255), 2.0f);
+
+        float green_line = (large * 2);
+
+        // chanel 2
+        splitter.SetCurrentChannel(draw_list, 0);
+       // horizontal lines 
+        for (int i = 0; i <= 8; i++) {
+            float multiplier_y1 = 1.0f - (i * 0.125f);
+            float y1 = (constant_height - (radius * multiplier_y1)) - 2.0f;
+            draw_list->AddLine(ImVec2(0.0f, y1), ImVec2(width, y1), IM_COL32(255, 0, 0, 50), 2.0f);
+        }
+
+        
+        for (int i = 8; i >= 1; i--) {
+            float multiplier = (i / 8.0f);
+            float y2 = (constant_height + (radius * multiplier)) + 2.0f;        
+            draw_list->AddLine(ImVec2(0.0f, y2), ImVec2(width, y2), IM_COL32(255, 0, 0, 50), 2.0f);
+            }
+
+         // vertical lines 
+        for (int i = 0; i <= 18; i++) {
+            float multiplier_x1 = (i * 0.125f);
+            float x1 = ((width *0.6f) - (radius * multiplier_x1)) - 2.0f;
+            draw_list->AddLine(ImVec2(x1, 0.0f), ImVec2(x1,height), IM_COL32(255, 0, 0, 50), 2.0f);
+        }   
+
+        for (int i = 1; i <= 18; i++) {
+            float multiplier_x1 = (i * 0.125f);
+            float x1 = ((width *0.6f) + (radius * multiplier_x1)) + 2.0f;
+            draw_list->AddLine(ImVec2(x1, 0.0f), ImVec2(x1,height), IM_COL32(255, 0, 0, 50), 2.0f);
+        }   
+
+       
+        
+    
+         splitter.Merge(draw_list);
 
 
 
@@ -259,7 +291,8 @@ int main() {
            
             ImGui::SetNextWindowPos(ImVec2(colllapsed_button_position));
             ImGui::SetNextWindowSize(ImVec2((width*0.035f)/3.0f,radius *0.44f));
-            ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 3.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
             ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(81.0f/255, 81.0f/255, 81.0f/255, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f));
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
@@ -267,8 +300,9 @@ int main() {
             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 1.0f)); //  when they dected the mouse
             ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 0.1f, 0.1f, 1.0f)); // whent they do click 
 
-            if (ImGui::Begin("BotonControl", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoScrollbar)){
+            if (ImGui::Begin("BotonControl", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoBackground)){
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
                 float total_width = ImGui::GetContentRegionAvail().x;
                 float total_height = ImGui::GetContentRegionAvail().y;
                 ImVec2 size_Button = ImVec2(total_width , total_height);
@@ -278,14 +312,14 @@ int main() {
                 
                 }
 
-                ImGui::PopStyleVar();
+                ImGui::PopStyleVar(2);
             }
                 
             
             
 
             ImGui::End();
-            ImGui::PopStyleVar(2);
+            ImGui::PopStyleVar(3);
             ImGui::PopStyleColor(5);
 
             
@@ -310,4 +344,4 @@ int main() {
     glfwTerminate();
 
     return 0;
-}
+}   
