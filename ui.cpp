@@ -16,6 +16,7 @@
 #include <string>
 #include <thread>
 #include <chrono>
+#include <mutex> // for protect the thread of the clean button 
 // Radar Libraries 
 #include "Radar.h"
 #include "Position.h"
@@ -25,6 +26,8 @@
 
 using namespace std;
 
+
+mutex plane_mutex;
 vector<Plane*> planeList; //list of all planes
 static int counterID = 0;
 
@@ -37,7 +40,7 @@ void Plane_generator (){
     i++ ;
     string ID = format ("A {}",i) ; 
     planeList.push_back(new Plane(ID));
-
+    lock_guard<std::mutex> lock(plane_mutex);
  }
   
 
@@ -82,7 +85,7 @@ void  Radar_loop(){
 
         radar.updateDeg(currentDeg + degreesTurned); //update current degree of radar
         
-
+        lock_guard<std::mutex> lock(plane_mutex);
         for (int p{0}; p < planeList.size(); p++){ //loop through planes
             planeList[p]->positionUpdate(nowTime); //update the plane position based on its speed and length of time since last update
 
@@ -119,8 +122,8 @@ void  Radar_loop(){
                 double SNR = calculateSNR(pos, radar); //calculate the Signal to Noise ratio
               planeList[p]->info = radar.printPlaneDetected_final(pos, planeFlatDeg, planeHeightDeg, planeMagnitude, SNR, rangeAccuracy(SNR, radar), angularAccuracy(SNR, radar));
               planeList[p]->lastDetectedTime = std::chrono::steady_clock::now();
-              planeList[p]->lastDetectedAngle = planeFlatDeg; // El ángulo que ya calculaste
-              planeList[p]->lastDetectedDistance = planeMagnitude; // La distancia que ya tienes
+              planeList[p]->lastDetectedAngle = planeFlatDeg; 
+              planeList[p]->lastDetectedDistance = planeMagnitude; 
               planeList[p]->isVisible = true;
 
 
@@ -131,9 +134,30 @@ void  Radar_loop(){
     }
 }
 
+void window_style() {
+    // window colors 
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(2.0f/255, 82.0f/255, 12.0f/255, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f));
     
+    //buttons colors 
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(2.0f/255, 100.0f/255, 12.0f/255, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(10.0f/255, 180.0f/255, 25.0f/255, 1.0f));
+    //background  slider colors
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(15.0f/255, 15.0f/255, 15.0f/255, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(20.0f/255, 20.0f/255, 20.0f/255, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(25.0f/255, 25.0f/255, 25.0f/255, 1.0f));
 
+    // grab colors
+    ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(2.0f/255, 100.0f/255, 12.0f/255, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(10.0f/255, 180.0f/255, 25.0f/255, 1.0f));
+}
 
+void F_style() {
+    // Sacamos los 6 colores que empujamos anteriormente
+    ImGui::PopStyleColor(11);
+}
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -494,9 +518,15 @@ int main() {
 
                   }
                  
-                if (ImGui::Button("Z", size_Button)) { /* ... */ }
+                if (ImGui::Button("Z", size_Button)) { 
+                    if (ImGui::Button("Z", size_Button)) { 
+                        show_clean_menu = !show_clean_menu; // Abre/Cierra el menú de confirmación
+                    }
+                 }
            
-                 if (ImGui::Button("W", size_Button)) { /* ... */ }
+                 if (ImGui::Button("W", size_Button)) { 
+                    show_settings_menu = !show_settings_menu;
+                 }
 
                 ImGui::PopStyleVar();
                
@@ -509,54 +539,134 @@ int main() {
             
        // buton y menu 
 
-       if (show_bulk_menu) {
-         ImGui::SetNextWindowPos(ImVec2(width*0.40f,height*0.30f));
-         ImGui::SetNextWindowSize(ImVec2( radius *(4* 0.125f), radius *(3* 0.125f) ), ImGuiCond_FirstUseEver);
-         ImGui::Begin("randomizer generator", &show_bulk_menu); // El & permite cerrar con la "X" de la ventana
-         ImGui::Text("choose the number of airplanes:");
-         ImGui::SliderInt("##number", &planes_to_add, 1, 100); // Slider de 1 a 100
-    
-            if (ImGui::Button("okey", ImVec2(-FLT_MIN, 0))) {
-                for (int i = 0; i < planes_to_add; i++) {
-                    Plane_generator();
-                    counterID++;
+        if (show_bulk_menu) {
+            ImGui::SetNextWindowPos(ImVec2(width*0.40f,height*0.30f));
+            ImGui::SetNextWindowSize(ImVec2( radius *(4* 0.125f), radius *(3* 0.125f) ));
+            window_style();
+            ImGui::Begin("randomizer generator", &show_bulk_menu,ImGuiWindowFlags_NoResize); // El & permite cerrar con la "X" de la ventana
+            ImGui::Text("choose the number of airplanes:");
+            ImGui::SliderInt("##number", &planes_to_add, 1, 100); // Slider de 1 a 100
+        
+                if (ImGui::Button("okey", ImVec2(-FLT_MIN, 0))) {
+                    for (int i = 0; i < planes_to_add; i++) {
+                        Plane_generator();
+                        counterID++;
+                    }
+                    show_bulk_menu = false; // Opcional: cerrar el menú al terminar
                 }
-                show_bulk_menu = false; // Opcional: cerrar el menú al terminar
+
+                if (ImGui::Button("cancel", ImVec2(-FLT_MIN, 0))) {
+                    show_bulk_menu = false;
+                }
+
+                ImGui::End();
+                F_style();
             }
 
-            if (ImGui::Button("cancel", ImVec2(-FLT_MIN, 0))) {
-                show_bulk_menu = false;
+
+            if (show_plane_menu) {
+                ImGui::SetNextWindowPos(ImVec2(width*0.40f,height*0.35f));
+                ImGui::SetNextWindowSize(ImVec2( radius *(4* 0.125f), radius *(3* 0.125f) ));
+                window_style();
+                ImGui::Begin("Plane generator", &show_plane_menu,ImGuiWindowFlags_NoResize); 
+                ImGui::Text("choose the number of airplanes:");
+                ImGui::SliderInt("##speed", &planes_to_add, 1, 100); // Slider de 1 a 100
+                ImGui::SliderInt("##number", &planes_to_add, 1, 100); // Slider de 1 a 100
+                ImGui::SliderInt("##number", &planes_to_add, 1, 100); // Slider de 1 a 100
+
+            
+                if (ImGui::Button("okey", ImVec2(-FLT_MIN, 0))) {
+                    for (int i = 0; i < planes_to_add; i++) {
+                        Plane_generator();
+                        counterID++;
+                    }
+                    show_bulk_menu = false; // Opcional: cerrar el menú al terminar
+                }
+
+                if (ImGui::Button("cancel", ImVec2(-FLT_MIN, 0))) {
+                    show_bulk_menu = false;
+                }
+
+                ImGui::End();
+                F_style();
             }
 
-            ImGui::End();
-        }
+            if (show_clean_menu) {
+                ImGui::SetNextWindowPos(ImVec2(width * 0.40f, height * 0.35f));
+                ImGui::SetNextWindowSize(ImVec2( radius *(4* 0.125f), radius *(3* 0.125f)));
+                window_style();
+                ImGui::Begin("Comfirm clean", &show_clean_menu, ImGuiWindowFlags_NoResize);
+                ImGui::TextWrapped("you want to erase all the planes ?");
+                ImGui::Spacing();
 
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.1f, 0.1f, 1.0f));
+                if (ImGui::Button("erase ALL", ImVec2(150, 0))) {
+                    std::lock_guard<std::mutex> lock(plane_mutex); // Bloqueo de seguridad
+                    for (Plane* plane : planeList) {
+                        delete plane;
+                    }
+                    planeList.clear();
+                    show_clean_menu = false;
+                }
+                ImGui::PopStyleColor();
 
-    if (show_plane_menu) {
-        ImGui::SetNextWindowPos(ImVec2(width*0.40f,height*0.35f));
-        ImGui::SetNextWindowSize(ImVec2( radius *(4* 0.125f), radius *(3* 0.125f) ), ImGuiCond_FirstUseEver);
-        ImGui::Begin("Plane generator", &show_plane_menu); // El & permite cerrar con la "X" de la ventana
-        ImGui::Text("choose the number of airplanes:");
-        ImGui::SliderInt("##speed", &planes_to_add, 1, 100); // Slider de 1 a 100
-        ImGui::SliderInt("##number", &planes_to_add, 1, 100); // Slider de 1 a 100
-        ImGui::SliderInt("##number", &planes_to_add, 1, 100); // Slider de 1 a 100
+                ImGui::SameLine();
 
-    
-        if (ImGui::Button("okey", ImVec2(-FLT_MIN, 0))) {
-            for (int i = 0; i < planes_to_add; i++) {
-                Plane_generator();
-                counterID++;
+                if (ImGui::Button("return", ImVec2(150, 0))) {
+                    show_clean_menu = false;
+                }
+                ImGui::End();
+                F_style();
             }
-            show_bulk_menu = false; // Opcional: cerrar el menú al terminar
-        }
 
-        if (ImGui::Button("cancel", ImVec2(-FLT_MIN, 0))) {
-            show_bulk_menu = false;
-        }
 
-        ImGui::End();
-    }
-           
+            if (show_settings_menu) {
+                ImGui::SetNextWindowPos(ImVec2(width * 0.40f, height * 0.25f));
+                ImGui::SetNextWindowSize(ImVec2(400, 350));
+                window_style();
+                ImGui::Begin("Radar Settings", &show_settings_menu,ImGuiWindowFlags_NoResize);
+                {
+                    // Usamos variables temporales para los sliders
+                    static int s_range = (int)range;
+                    static int s_minDeg = minDeg;
+                    static int s_maxDeg = maxDeg;
+                    static int s_dps = degPerSec;
+                    static int s_gain = gain;
+
+                    ImGui::Text("Ajustes del Sistema de Radar");
+                    ImGui::Separator();
+
+                    // Sliders para configurar parámetros
+                    ImGui::SliderInt("Rango (m)", &s_range, 1000, 200000);
+                    ImGui::SliderInt("Ángulo Mín", &s_minDeg, 0, 359);
+                    ImGui::SliderInt("Ángulo Máx", &s_maxDeg, 1, 360);
+                    ImGui::SliderInt("Velocidad (deg/s)", &s_dps, 1, 360);
+                    ImGui::SliderInt("Ganancia (dBi)", &s_gain, 1, 60);
+
+                    ImGui::Spacing();
+
+                    if (ImGui::Button("Aplicar Cambios", ImVec2(-FLT_MIN, 0))) {
+                        // protecd the radar for dont have bugs
+                        std::lock_guard<std::mutex> lock(plane_mutex); 
+                        
+                        radar.setRange(s_range);
+                        radar.setDPS(s_dps);
+                        
+                        range = s_range;
+                        degPerSec = s_dps;
+                        gain = s_gain;
+                        
+                        show_settings_menu = false; 
+                    }
+
+                    if (ImGui::Button("Close", ImVec2(-FLT_MIN, 0))) {
+                        show_settings_menu = false;
+                    }
+                }
+                ImGui::End();
+                F_style();
+            }
+            
             ImGui::SetNextWindowPos(ImVec2(colllapsed_button_position));
             ImGui::SetNextWindowSize(ImVec2((width*0.035f)/3.0f,radius *0.22f));
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
@@ -608,6 +718,11 @@ int main() {
     
     running = false;    
     radarThread.join();
+
+    for (Plane* plane : planeList) {
+        delete plane; // Libera la memoria de cada objeto
+    }
+    planeList.clear();
   
     
     // 5. cleaning 
