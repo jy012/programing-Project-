@@ -1,12 +1,142 @@
 #include "imgui.h" // core  of dear imgui
 #include "imgui_impl_glfw.h" // adapter for  GFLW
 #include "imgui_impl_opengl3.h" // adapter for  open GFLW 3
-#include <iostream>
 #include <imgui_internal.h>
 #define GL_SILENCE_DEPRECATION // Silense of obsolet fucntions in opengl
-#include <stdio.h>
 #include <GLFW/glfw3.h> // librery f or create windows  adn  contexts opengl
+// c++ libraries 
+#include<iostream>
+#include<format>
+#include<array>
+#include<vector>
+#include<cmath>
+#include<thread>
+#include <stdio.h>
 #include <cmath>
+#include <string>
+#include <thread>
+#include <chrono>
+// Radar Libraries 
+#include "Radar.h"
+#include "Position.h"
+#include "Plane.h"
+#include "Functions.h" 
+#include <future>
+
+using namespace std;
+
+
+ struct Plane_Data {
+    std::string titulo;
+    int id;
+    ImVec2 last_drawPos; 
+   
+};
+
+vector<Plane*> planeList; //list of all planes
+static int counterID = 0;
+
+
+size_t detector_newplane = planeList.size();
+
+
+void Plane_generator (){
+    static int i; 
+    i++ ;
+    string ID = format ("A {}",i) ; 
+    planeList.push_back(new Plane(ID));
+
+ }
+
+
+Position p(0, 0, 0); 
+long long range = 100000;
+int minDeg = 0; 
+int maxDeg = 360;
+int elevation = 0;
+int degPerSec = 30;
+int  gain = 34;
+
+Radar radar(
+    p, //position
+    minDeg, //minimum angle
+    maxDeg, //maximum angle
+    range, //range
+    elevation,  //elevation
+    degPerSec, //degrees per second
+    gain //gain (dBi)
+);
+
+
+
+
+bool running = true;
+
+void  Radar_loop(){
+    Position origin = radar.getPosition(); //radar position (never changes)
+
+    while (running){ //makes it loop forever
+        std::this_thread::sleep_for(std::chrono::milliseconds(1)); //without this, it runs so fast that the degrees turned is so close to 0 it gets rounded to 0 and the radar never actually turns
+        auto nowTime = chrono::steady_clock::now(); //get the current time
+        auto duration = chrono::duration_cast<std::chrono::milliseconds>(nowTime - radar.getTime()); //get the time between now and the last time the radar turned (should always be about 1 millisecond)
+        radar.updateTime(nowTime); //update the time the radar last turned
+
+        double currentDeg = radar.getDeg(); //get the currente radar angle
+        double dPS = radar.getDPS(); //get how fast the radar turns
+        double seconds = static_cast<double>(duration.count()) / 1000; //convert the duration from milliseconds to seconds
+        double degreesTurned = seconds * dPS; //get how many degrees the radar turned
+
+        radar.updateDeg(currentDeg + degreesTurned); //update current degree of radar
+
+
+        for (int p{0}; p < planeList.size(); p++){ //loop through planes
+            planeList[p]->positionUpdate(nowTime); //update the plane position based on its speed and length of time since last update
+
+            //double xp, yp, zp;
+            //planeList[p].getPosition(xp, yp, zp);
+            //Position pos = {xp, yp, zp}; //position of the plane
+            Position pos = planeList[p]->getPosition();
+            //cout << pos.toString() << endl;
+
+            double planeMagnitude = distanceMagnitude(radar.getPosition(), pos); //distance from the radar to the plane
+            double planeFlatDeg; //flat angle between radar and plane
+            double planeHeightDeg; //height angle between radar and plane
+            bool planeDetected = false; //this is just to prevent having to call the the printPlaneDetected twice for both edge cases
+
+            if (planeMagnitude <= radar.getRange()){ //check if plane is within range
+                planeFlatDeg = relativeFlatAngle(pos, radar); //calculate flat angle
+                planeHeightDeg = relativeHeightAngle(pos, radar); //calculate height angle
+                if ((currentDeg + degreesTurned) > 360){ //for special case (e.g. 300 + 70 = 370, without extra logic it wont detect planes within that 0-10 degree window)
+                    double extraDeg = (currentDeg + degreesTurned) - 360; //this wont factor in if it did a full circle more than once, but that is in all likelihood not possible
+                    if (extraDeg >= currentDeg){ //radar has pinged every angle
+                        planeDetected = true;
+                    }
+                }
+                else { //if not special case
+                    if (planeFlatDeg >= currentDeg && planeFlatDeg <= (currentDeg + degreesTurned)){ //if plane lies within the degrees the radar has scanned
+                        planeDetected = true;
+                    }
+                }
+            }
+
+
+            if (planeDetected){
+                double SNR = calculateSNR(pos, radar); //calculate the Signal to Noise ratio
+              planeList[p]->info = radar.printPlaneDetected_final(pos, planeFlatDeg, planeHeightDeg, planeMagnitude, SNR, rangeAccuracy(SNR, radar), angularAccuracy(SNR, radar));
+              planeList[p]->lastDetectedTime = std::chrono::steady_clock::now();
+              planeList[p]->lastDetectedAngle = planeFlatDeg; // El ángulo que ya calculaste
+              planeList[p]->lastDetectedDistance = planeMagnitude; // La distancia que ya tienes
+              planeList[p]->isVisible = true;
+
+        
+            } 
+           
+        }
+    }
+}
+
+    
+
 
 
 static void glfw_error_callback(int error, const char* description)
@@ -15,7 +145,12 @@ static void glfw_error_callback(int error, const char* description)
 }
 
 int main() {
-   
+    static bool show_plane_menu = false;
+    static bool show_bulk_menu = false;
+    static bool show_clean_menu = false;
+    static bool show_settings_menu = false;
+    static int planes_to_add = 1;
+    
     glfwSetErrorCallback(glfw_error_callback); // error mesague displayer 
     if (!glfwInit()) return 1; // initialize gflw
 
@@ -59,7 +194,7 @@ int main() {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); 
 
-// open variables 
+// open bool variables 
 
     bool open_window1 = false;  
     static bool no_collapsed = true;  
@@ -82,36 +217,73 @@ int main() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    // 4. mian loops
-    while (!glfwWindowShouldClose(window)) {
-        glfwPollEvents();
+    //radar loop 
 
+   
+
+    // 4. mian loop
+    thread radarThread(Radar_loop);
+
+    while (!glfwWindowShouldClose(window)) {
+        
+
+        glfwPollEvents();
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+        
 
-
+        // for erase the planes 
+       
         // Draws on the main window 
         ImDrawList* draw_list = ImGui::GetBackgroundDrawList();
         int width, height;
         glfwGetWindowSize(window, &width, &height);
 
         static ImDrawListSplitter splitter;
-        // chanel 1 
-        splitter.Split(draw_list, 2);
+        // chanel 1  or cape 1 
+        splitter.Split(draw_list, 3);
         ImVec2 p = ImVec2( width *0.6f,height * 0.5f);
         float thickness = 1.0f;
         static float angle = 0.0f;
 
         // radar draw
-        angle += ImGui::GetIO().DeltaTime * 2.0f; // Velocidad
+        angle += ImGui::GetIO().DeltaTime * 0.5236f;; // velocity
         float large =  height *0.45; // large of the line 
         const int line_trail = 100;       // the lines that  make the trail
         const float rate_d = 0.01f;     // at what rate the lines  dissapear
+        
         // animation of the trail 
         float radius = (height *0.45f); 
+        splitter.SetCurrentChannel(draw_list, 2);
 
-        splitter.SetCurrentChannel(draw_list, 1);
+        // plane drawing 
+    auto now = std::chrono::steady_clock::now();
+    for (Plane* plane : planeList) {
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - plane->lastDetectedTime);
+
+        if (duration.count() < 2000) { 
+          
+            float angleRad = plane->lastDetectedAngle * (3.14159f / 180.0f);
+            
+            // ser the plane distance 
+            float distPixels = (plane->lastDetectedDistance / radar.getRange()) * (height * 0.45f);
+
+            // Calculate the finalposition  
+            ImVec2 blipPos = ImVec2(
+                p.x + std::cos(angleRad) * distPixels,
+                p.y + std::sin(angleRad) * distPixels
+            );
+
+            // 4. Draw
+            float alpha = 1.0f - (duration.count() / 2000.0f);
+            draw_list->AddCircleFilled(blipPos, (width*0.035f)/5.0f, IM_COL32(255, 0, 0, (int)(alpha * 255)));
+        }
+    }
+            
+    
+         
+        splitter.SetCurrentChannel(draw_list, 1); // cape 2 or chanel 2 
 
         for (int i = line_trail; i > 0; i--) { 
             float old_angle = angle - (i * rate_d);
@@ -149,8 +321,9 @@ int main() {
 
         float green_line = (large * 2);
 
-        // chanel 2
+        // Last chanel or last cape 
         splitter.SetCurrentChannel(draw_list, 0);
+
        // horizontal lines 
         for (int i = 0; i <= 8; i++) {
             float multiplier_y1 = 1.0f - (i * 0.125f);
@@ -178,10 +351,7 @@ int main() {
             draw_list->AddLine(ImVec2(x1, 0.0f), ImVec2(x1,height), IM_COL32(255, 0, 0, 50), 2.0f);
         }   
 
-       
-        
-    
-         splitter.Merge(draw_list);
+         splitter.Merge(draw_list); // conbines all the capes of drawing 
 
 
 
@@ -211,24 +381,55 @@ int main() {
 
                 if (ImGui::BeginChild("Header",ImVec2(width*0.22f,height*0.05f),false)){
                     const char* title = "Objects in the air";
-                ImVec2 textSize = ImGui::CalcTextSize(title);
-                float posX = (width*0.22f - textSize.x) * 0.5f;
-                float posY = (height*0.05f- textSize.y) * 0.5f;
-                ImGui::SetCursorPos(ImVec2(posX, posY));
-                ImGui::Text("%s",title);
+                    ImVec2 textSize = ImGui::CalcTextSize(title);
+                    float posX = (width*0.22f - textSize.x) * 0.5f;
+                    float posY = (height*0.05f- textSize.y) * 0.5f;
+                    ImGui::SetCursorPos(ImVec2(posX, posY));
+                    ImGui::Text("%s",title);
+
                 }
                 ImGui::EndChild();
                 ImGui::PopStyleColor(2);
+               
 
+                if (!planeList.empty()) {
 
+                    for (size_t i = 0; i < planeList.size(); i++) {
+                        std::string title = "Plane #" + std::to_string(i);
+                        
 
-                ImGui::Text("largo %2.f | centro %.2d",large , height);
+                        if (ImGui::CollapsingHeader(title.c_str())) {
+                            Plane* plane = planeList[i];
+                            // get the the last time was the plane detected
+                            auto now = std::chrono::steady_clock::now();
+                            auto duration = std::chrono::duration_cast<std::chrono::seconds>(now - plane->lastDetectedTime);
+                            long long totalSeconds = duration.count();
+                            int minutes = (int)(totalSeconds / 60);
+                            int seconds = (int)(totalSeconds % 60);
+
+                            Position pos = plane->getPosition();
+
+                            ImGui::Text("ID: %zu", i);
+                            ImGui::Text("Position: %s", pos.toString().c_str());
+                            ImGui::Text("Radar: %s", plane->info.c_str());
+                            ImGui::Text("last time localised: %02d:%02d", minutes, seconds);
+
+                            if (ImGui::Button(("Delete ##" + std::to_string(i)).c_str())) {
+                                delete planeList[i];
+                                planeList.erase(planeList.begin() + i);
+                                break; // evitar invalidación
+                            }
+                        }
+                    }
+                }
+
             }
-            
             ImGui::End();
-            ImGui::PopStyleColor(3);
-
+            ImGui::PopStyleColor(3);    
         }
+            
+
+        
        
 
          // buttons menu
@@ -245,7 +446,7 @@ int main() {
              final_buttons_position = buttons_position_2;
 
         } 
-         ImVec2 colllapsed_button_position((final_buttons_position.x)+(width*0.035f),width*0.045f);
+         ImVec2 colllapsed_button_position((final_buttons_position.x)+(width*0.035f),width*0.070f);
 
          
        
@@ -261,7 +462,7 @@ int main() {
         ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 0.1f, 0.1f, 1.0f)); // whent they do click 
         
            
-        if (ImGui::Begin("buttons",NULL,ImGuiChildFlags_Borders|ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoResize)){
+             if (ImGui::Begin("buttons", NULL, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse| ImGuiWindowFlags_NoTitleBar)){
                 
               // made buttons have no space with each other 
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -271,9 +472,19 @@ int main() {
                  // Dividimos el ancho total entre 4
                 ImVec2 size_Button = ImVec2(total_width , total_height/4.0f);
         
-                if (ImGui::Button("X", size_Button)) { /* ... */ }
+                if (ImGui::Button("X", size_Button)) {  
+                     Plane_generator();
+                     counterID++;
+                     
+
+                } 
+                
                
-                 if (ImGui::Button("Y", size_Button)) { /* ... */ }
+                 if (ImGui::Button("Y", size_Button)) {   
+                    show_bulk_menu = !show_bulk_menu;
+                
+
+                  }
                  
                 if (ImGui::Button("Z", size_Button)) { /* ... */ }
            
@@ -288,21 +499,71 @@ int main() {
             ImGui::PopStyleVar(2);
             ImGui::PopStyleColor(5);
             
+       // buton y menu 
+
+       if (show_bulk_menu) {
+         ImGui::SetNextWindowPos(ImVec2(width*0.40f,height*0.30f));
+         ImGui::SetNextWindowSize(ImVec2( radius *(4* 0.125f), radius *(3* 0.125f) ), ImGuiCond_FirstUseEver);
+         ImGui::Begin("randomizer generator", &show_bulk_menu); // El & permite cerrar con la "X" de la ventana
+         ImGui::Text("choose the number of airplanes:");
+         ImGui::SliderInt("##number", &planes_to_add, 1, 100); // Slider de 1 a 100
+    
+            if (ImGui::Button("okey", ImVec2(-FLT_MIN, 0))) {
+                for (int i = 0; i < planes_to_add; i++) {
+                    Plane_generator();
+                    counterID++;
+                }
+                show_bulk_menu = false; // Opcional: cerrar el menú al terminar
+            }
+
+            if (ImGui::Button("cancel", ImVec2(-FLT_MIN, 0))) {
+                show_bulk_menu = false;
+            }
+
+            ImGui::End();
+        }
+
+
+    if (show_plane_menu) {
+        ImGui::SetNextWindowPos(ImVec2(width*0.40f,height*0.35f));
+        ImGui::SetNextWindowSize(ImVec2( radius *(4* 0.125f), radius *(3* 0.125f) ), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Plane generator", &show_plane_menu); // El & permite cerrar con la "X" de la ventana
+        ImGui::Text("choose the number of airplanes:");
+        ImGui::SliderInt("##speed", &planes_to_add, 1, 100); // Slider de 1 a 100
+        ImGui::SliderInt("##number", &planes_to_add, 1, 100); // Slider de 1 a 100
+        ImGui::SliderInt("##number", &planes_to_add, 1, 100); // Slider de 1 a 100
+
+    
+        if (ImGui::Button("okey", ImVec2(-FLT_MIN, 0))) {
+            for (int i = 0; i < planes_to_add; i++) {
+                Plane_generator();
+                counterID++;
+            }
+            show_bulk_menu = false; // Opcional: cerrar el menú al terminar
+        }
+
+        if (ImGui::Button("cancel", ImVec2(-FLT_MIN, 0))) {
+            show_bulk_menu = false;
+        }
+
+        ImGui::End();
+    }
            
             ImGui::SetNextWindowPos(ImVec2(colllapsed_button_position));
-            ImGui::SetNextWindowSize(ImVec2((width*0.035f)/3.0f,radius *0.44f));
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 12.0f);
+            ImGui::SetNextWindowSize(ImVec2((width*0.035f)/3.0f,radius *0.22f));
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 1.0f);
-            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(81.0f/255, 81.0f/255, 81.0f/255, 1.0f));
             ImGui::PushStyleColor(ImGuiCol_WindowBg,ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f));
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f)); // normal color
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 1.0f)); //  when they dected the mouse
+            ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.3f, 0.3f, 0.3f, 1.0f)); // normal color
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f)); //  when they dected the mouse
             ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 0.1f, 0.1f, 1.0f)); // whent they do click 
 
             if (ImGui::Begin("BotonControl", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoBackground)){
+               
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 3.0f); 
                 ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12.0f);
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(81.0f/255, 81.0f/255, 81.0f/255, 1.0f)); // white 
                 float total_width = ImGui::GetContentRegionAvail().x;
                 float total_height = ImGui::GetContentRegionAvail().y;
                 ImVec2 size_Button = ImVec2(total_width , total_height);
@@ -312,15 +573,16 @@ int main() {
                 
                 }
 
-                ImGui::PopStyleVar(2);
+                ImGui::PopStyleVar(3);
+                ImGui::PopStyleColor();
             }
                 
             
             
 
             ImGui::End();
-            ImGui::PopStyleVar(3);
-            ImGui::PopStyleColor(5);
+            ImGui::PopStyleVar(2);
+            ImGui::PopStyleColor(4);
 
             
         // Render
@@ -334,14 +596,19 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData()); 
         glfwSwapBuffers(window);
-    }
-
+        }
+    
+    running = false;    
+    radarThread.join();
+  
+    
     // 5. cleaning 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
     glfwDestroyWindow(window);
     glfwTerminate();
+  
 
     return 0;
 }   
