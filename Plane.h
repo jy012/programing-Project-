@@ -4,14 +4,15 @@
 #include <random>
 #include <cmath>
 #include <chrono>
-
 #include "Position.h"
+
 //Class of aircrafts
 class Plane{
   public:
     //Object creators
     Plane();
     Plane(std::string name);
+    Plane(string name, double vx, double vy, double vz, Position pos);
 
     //functions in class
     std::string getplaneName();
@@ -24,6 +25,13 @@ class Plane{
     void positionUpdate(chrono::steady_clock::time_point time);
     //debug
     void printall();
+    string return_all();
+    string info = "No Detected";
+    std::chrono::steady_clock::time_point lastDetectedTime = std::chrono::steady_clock::now();
+    bool isVisible = false;
+    float lastDetectedAngle = 0.0f;
+    float lastDetectedDistance = 0.0f;
+    
     
   private:
   //data values saved for each aircraft
@@ -105,7 +113,23 @@ Plane::Plane(string name){
         m_pos = Position(m_posx, m_posy, m_posz);
         timeOfLastUpdate = chrono::steady_clock::now();
         timeOfLastPing = timeOfLastUpdate;
+      
 }
+
+Plane::Plane(string name, double vx, double vy, double vz, Position pos) {
+    m_planeName = name;
+    m_speedx = vx;
+    m_speedy = vy;
+    m_speedz = vz;
+    m_pos = pos;
+    timeOfLastUpdate = chrono::steady_clock::now();
+    timeOfLastPing = timeOfLastUpdate;
+    posAtLastPing = pos; 
+}
+
+
+
+
 //Debug data
 void Plane::printall(){
     cout << m_speedx << endl;
@@ -113,6 +137,9 @@ void Plane::printall(){
     cout << m_speedz << endl;
     cout << m_pos.toString() << endl;
 }
+
+
+
 //gets name
 string Plane::getplaneName(){
     return m_planeName;
@@ -143,6 +170,9 @@ void Plane::ping(chrono::steady_clock::time_point time, Position pos){ //was use
     timeOfLastPing = time;
     posAtLastPing = pos;
 }
+
+
+
 
 chrono::steady_clock::time_point Plane::getPingTime(){ //was used for velocity, not important now
     return timeOfLastPing;
