@@ -25,14 +25,6 @@
 
 using namespace std;
 
-
- struct Plane_Data {
-    std::string titulo;
-    int id;
-    ImVec2 last_drawPos; 
-   
-};
-
 vector<Plane*> planeList; //list of all planes
 static int counterID = 0;
 
@@ -47,6 +39,7 @@ void Plane_generator (){
     planeList.push_back(new Plane(ID));
 
  }
+  
 
 
 Position p(0, 0, 0); 
@@ -72,6 +65,7 @@ Radar radar(
 
 bool running = true;
 
+
 void  Radar_loop(){
     Position origin = radar.getPosition(); //radar position (never changes)
 
@@ -87,7 +81,7 @@ void  Radar_loop(){
         double degreesTurned = seconds * dPS; //get how many degrees the radar turned
 
         radar.updateDeg(currentDeg + degreesTurned); //update current degree of radar
-
+        
 
         for (int p{0}; p < planeList.size(); p++){ //loop through planes
             planeList[p]->positionUpdate(nowTime); //update the plane position based on its speed and length of time since last update
@@ -115,6 +109,7 @@ void  Radar_loop(){
                 else { //if not special case
                     if (planeFlatDeg >= currentDeg && planeFlatDeg <= (currentDeg + degreesTurned)){ //if plane lies within the degrees the radar has scanned
                         planeDetected = true;
+
                     }
                 }
             }
@@ -127,6 +122,7 @@ void  Radar_loop(){
               planeList[p]->lastDetectedAngle = planeFlatDeg; // El ángulo que ya calculaste
               planeList[p]->lastDetectedDistance = planeMagnitude; // La distancia que ya tienes
               planeList[p]->isVisible = true;
+
 
         
             } 
@@ -247,48 +243,57 @@ int main() {
         float thickness = 1.0f;
         static float angle = 0.0f;
 
-        // radar draw
-        angle += ImGui::GetIO().DeltaTime * 0.5236f;; // velocity
+        // radar draw animation
+        //David the line is created
+       
+
+
+        float visualAngle = (float)radar.getDeg();
+        float radians = visualAngle * (IM_PI / 180.0f);
+       
+        // velocity and direction
         float large =  height *0.45; // large of the line 
         const int line_trail = 100;       // the lines that  make the trail
-        const float rate_d = 0.01f;     // at what rate the lines  dissapear
+        const float rate_d = 0.5f;     // at what rate the lines  dissapear
         
-        // animation of the trail 
+        // animation of the trail  variables 
         float radius = (height *0.45f); 
         splitter.SetCurrentChannel(draw_list, 2);
 
-        // plane drawing 
-    auto now = std::chrono::steady_clock::now();
-    for (Plane* plane : planeList) {
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - plane->lastDetectedTime);
+            // plane drawing 
+        auto now = std::chrono::steady_clock::now();
+        for (Plane* plane : planeList) {
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(now - plane->lastDetectedTime);
 
-        if (duration.count() < 2000) { 
-          
-            float angleRad = plane->lastDetectedAngle * (3.14159f / 180.0f);
+            if (duration.count() < 2000) { 
             
-            // ser the plane distance 
-            float distPixels = (plane->lastDetectedDistance / radar.getRange()) * (height * 0.45f);
+                float angleRad = plane->lastDetectedAngle * (3.14159f / 180.0f);
+                
+                // ser the plane distance 
+                float distPixels = (plane->lastDetectedDistance / radar.getRange()) * (height * 0.45f);
 
-            // Calculate the finalposition  
-            ImVec2 blipPos = ImVec2(
-                p.x + std::cos(angleRad) * distPixels,
-                p.y + std::sin(angleRad) * distPixels
-            );
+                // Calculate the finalposition  
+                ImVec2 blipPos = ImVec2(
+                    p.x + std::cos(angleRad) * distPixels,
+                    p.y + std::sin(angleRad) * distPixels
+                );
 
-            // 4. Draw
-            float alpha = 1.0f - (duration.count() / 2000.0f);
-            draw_list->AddCircleFilled(blipPos, (width*0.035f)/5.0f, IM_COL32(255, 0, 0, (int)(alpha * 255)));
+                // 4. Draw
+                float alpha = 1.0f - (duration.count() / 2000.0f);
+                draw_list->AddCircleFilled(blipPos, (width*0.035f)/5.0f, IM_COL32(255, 0, 0, (int)(alpha * 255)));
+            }
         }
-    }
             
     
          
         splitter.SetCurrentChannel(draw_list, 1); // cape 2 or chanel 2 
-
+        // radar draw animation
         for (int i = line_trail; i > 0; i--) { 
-            float old_angle = angle - (i * rate_d);
 
-            ImVec2 p_old = ImVec2(p.x + std::cos(old_angle) * large, p.y + std::sin(old_angle) * large);
+            float trailAngle = visualAngle - (i * rate_d);
+            float trailRad = trailAngle * (IM_PI / 180.0f);
+
+            ImVec2 p_old = ImVec2(p.x + std::cos(trailRad) * large, p.y + std::sin(trailRad) * large);
             // alpha calculate the opacacity of the lines 
             int alpha = (int)((1.0f - ((float)i / line_trail)) * 255);
 
@@ -296,7 +301,10 @@ int main() {
 
         }
 
-        ImVec2 p2 = ImVec2(p.x + std::cos(angle) * large,  p.y + std::sin(angle) * large); //position and motion
+        
+
+        // draw the mian line 
+        ImVec2 p2 = ImVec2(p.x + std::cos(radians) * large,  p.y + std::sin(radians) * large); //position and motion
         draw_list ->AddLine(p, p2, IM_COL32(0, 255, 0, 255), 2.0f);
 
         float constant_height = height * 0.5f;
