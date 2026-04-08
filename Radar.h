@@ -75,6 +75,14 @@ public:
         return timeOfLastUpdate;
     }
 
+    void setRange(double s_range) {
+        range = s_range;
+    }
+
+    void setDPS (double s_dps){
+        degPerSec = s_dps;
+    }
+
     void printPlaneDetected(Position planePos, double fdeg, double hdeg, double magnitude, double SNR, double rangeAccuracy, double angleAccuracy){ //this is just to display all the information the radar has about the plane
 
         cout << format("Plane detected:\nPosition: ({}) meters\nAngle: {:.2f} degrees flat, {:.2f} degrees high\nMagntiude: {:.2f} meters\nSNR: {:.2f} S/N, ({:.2f} decibels)\nRange Accuracy: {:.2f} meters, Angular Accuracy: {:.4f} degrees\n\n",
