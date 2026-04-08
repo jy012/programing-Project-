@@ -36,11 +36,10 @@ size_t detector_newplane = planeList.size();
 
 
 void Plane_generator (){
-    static int i; 
-    i++ ;
-    string ID = format ("A {}",i) ; 
+    string ID = format ("A {}",counterID) ; 
+     lock_guard<std::mutex> lock(plane_mutex);
     planeList.push_back(new Plane(ID));
-    lock_guard<std::mutex> lock(plane_mutex);
+   
  }
   
 
@@ -62,6 +61,23 @@ Radar radar(
     degPerSec, //degrees per second
     gain //gain (dBi)
 );
+
+// variables for create a personalized aiplane  
+string name_airplane ; 
+double vx;
+double vy;                     
+double vz;
+double fp_x;
+double fp_y;
+double fp_z;
+Position pos_airplane;
+
+void Plane_generator_custom (string name ,double Vx,double Vy,double Vz,double tp_x,double tp_y,double tp_z,Position pos){
+    pos.set_position(fp_x,fp_y,fp_z);
+    lock_guard<std::mutex> lock(plane_mutex);
+    planeList.push_back(new Plane(name,Vx,Vy,Vz,pos));
+   
+ }
 
 
 
@@ -85,52 +101,51 @@ void  Radar_loop(){
 
         radar.updateDeg(currentDeg + degreesTurned); //update current degree of radar
         
-        lock_guard<std::mutex> lock(plane_mutex);
-        for (int p{0}; p < planeList.size(); p++){ //loop through planes
-            planeList[p]->positionUpdate(nowTime); //update the plane position based on its speed and length of time since last update
+       {
+            lock_guard<std::mutex> lock(plane_mutex);
+            for (int p{0}; p < planeList.size(); p++){
+                //loop through planes{}
+                planeList[p]->positionUpdate(nowTime); //update the plane position ba{}sed on its speed and length of time since last update
+                //double xp, yp, zp;
+                //planeList[p].getPosition(xp, yp, zp);
+                //Position pos = {xp, yp, zp}; //position of the plane
+                Position pos = planeList[p]->getPosition();
+                //cout << pos.toString() << endl;
 
-            //double xp, yp, zp;
-            //planeList[p].getPosition(xp, yp, zp);
-            //Position pos = {xp, yp, zp}; //position of the plane
-            Position pos = planeList[p]->getPosition();
-            //cout << pos.toString() << endl;
+                double planeMagnitude = distanceMagnitude(radar.getPosition(), pos); //distance from the radar to the plane
+                double planeFlatDeg; //flat angle between radar and plane
+                double planeHeightDeg; //height angle between radar and plane
+                bool planeDetected = false; //this is just to prevent having to call the the printPlaneDetected twice for both edge cases
 
-            double planeMagnitude = distanceMagnitude(radar.getPosition(), pos); //distance from the radar to the plane
-            double planeFlatDeg; //flat angle between radar and plane
-            double planeHeightDeg; //height angle between radar and plane
-            bool planeDetected = false; //this is just to prevent having to call the the printPlaneDetected twice for both edge cases
+                if (planeMagnitude <= radar.getRange()){ //check if plane is within range
+                    planeFlatDeg = relativeFlatAngle(pos, radar); //calculate flat angle
+                    planeHeightDeg = relativeHeightAngle(pos, radar); //calculate height angle
+                    if ((currentDeg + degreesTurned) > 360){ //for special case (e.g. 300 + 70 = 370, without extra logic it wont detect planes within that 0-10 degree window)
+                        double extraDeg = (currentDeg + degreesTurned) - 360; //this wont factor in if it did a full circle more than once, but that is in all likelihood not possible
+                        if (extraDeg >= currentDeg){ //radar has pinged every angle
+                                planeDetected = true;
+                            }
+                    }
+                    else { //if not special case
+                        if (planeFlatDeg >= currentDeg && planeFlatDeg <= (currentDeg + degreesTurned)){ //if plane lies within the degrees the radar has scanned
+                            planeDetected = true;
 
-            if (planeMagnitude <= radar.getRange()){ //check if plane is within range
-                planeFlatDeg = relativeFlatAngle(pos, radar); //calculate flat angle
-                planeHeightDeg = relativeHeightAngle(pos, radar); //calculate height angle
-                if ((currentDeg + degreesTurned) > 360){ //for special case (e.g. 300 + 70 = 370, without extra logic it wont detect planes within that 0-10 degree window)
-                    double extraDeg = (currentDeg + degreesTurned) - 360; //this wont factor in if it did a full circle more than once, but that is in all likelihood not possible
-                    if (extraDeg >= currentDeg){ //radar has pinged every angle
-                        planeDetected = true;
+                        }
                     }
                 }
-                else { //if not special case
-                    if (planeFlatDeg >= currentDeg && planeFlatDeg <= (currentDeg + degreesTurned)){ //if plane lies within the degrees the radar has scanned
-                        planeDetected = true;
 
-                    }
-                }
+
+                 if (planeDetected){
+                    double SNR = calculateSNR(pos, radar); //calculate the Signal to Noise ratio
+                    planeList[p]->info = radar.printPlaneDetected_final(pos, planeFlatDeg, planeHeightDeg, planeMagnitude, SNR, rangeAccuracy(SNR, radar), angularAccuracy(SNR, radar));
+                    planeList[p]->lastDetectedTime = std::chrono::steady_clock::now();
+                    planeList[p]->lastDetectedAngle = planeFlatDeg; 
+                    planeList[p]->lastDetectedDistance = planeMagnitude; 
+                    planeList[p]->isVisible = true;
+                } 
             }
-
-
-            if (planeDetected){
-                double SNR = calculateSNR(pos, radar); //calculate the Signal to Noise ratio
-              planeList[p]->info = radar.printPlaneDetected_final(pos, planeFlatDeg, planeHeightDeg, planeMagnitude, SNR, rangeAccuracy(SNR, radar), angularAccuracy(SNR, radar));
-              planeList[p]->lastDetectedTime = std::chrono::steady_clock::now();
-              planeList[p]->lastDetectedAngle = planeFlatDeg; 
-              planeList[p]->lastDetectedDistance = planeMagnitude; 
-              planeList[p]->isVisible = true;
-
-
-        
-            } 
-           
         }
+       
     }
 }
 
@@ -336,20 +351,31 @@ int main() {
         // Circles
 
         ImU32 color = IM_COL32(0,255,0,255);
+        
 
-            for (int i = 0; i <= 8; i++) {
+            for (int i = 1; i <= 8; i++) {
             float multiplier = (i * 0.125f);
             float f_radius = radius * multiplier;
+            std::string distanceText = std::format("{:.1f}k", i * 12.5f);
+            ImVec2 textSize = ImGui::CalcTextSize(distanceText.c_str());
+
+            ImVec2 posH = ImVec2(p.x - f_radius - (textSize.x / 2.0f), p.y - 20.0f);
+            draw_list->AddText(posH, color, distanceText.c_str());
+
+            ImVec2 posV = ImVec2(p.x - textSize.x - 10.0f, p.y - f_radius - (textSize.y / 2.0f));
+            draw_list->AddText(posV, color, distanceText.c_str());
+
             draw_list ->AddCircle(p,f_radius,color,0,thickness); 
         }
+
         float H1 = (constant_height - (radius));
         float H2 = (constant_height + (radius));
 
         float L1 = ((width *0.6f) - (radius));
         float L2 = ((width *0.6f) + (radius));
 
-         draw_list->AddLine(ImVec2((width *0.6f), H1), ImVec2((width *0.6f), H2), IM_COL32(0, 255, 0, 255), 2.0f);
-         draw_list->AddLine(ImVec2(L1, (height *0.5f)), ImVec2(L2,(height *0.5f)), IM_COL32(0, 255, 0, 255), 2.0f);
+        draw_list->AddLine(ImVec2((width *0.6f), H1), ImVec2((width *0.6f), H2), IM_COL32(0, 255, 0, 255), 2.0f);
+        draw_list->AddLine(ImVec2(L1, (height *0.5f)), ImVec2(L2,(height *0.5f)), IM_COL32(0, 255, 0, 255), 2.0f);
 
         float green_line = (large * 2);
 
@@ -427,10 +453,19 @@ int main() {
                 if (!planeList.empty()) {
 
                     for (size_t i = 0; i < planeList.size(); i++) {
-                        std::string title = "Plane #" + std::to_string(i);
-                        
+                        std::string title = "Plane #" + std::to_string(i + 1);
 
-                        if (ImGui::CollapsingHeader(title.c_str())) {
+                        ImVec4 verdeNormal = ImVec4(2.0f/255, 100.0f/255, 12.0f/255, 1.0f); 
+                        ImVec4 verdeHover  = ImVec4(2.0f/255, 82.0f/255, 12.0f/255, 1.0f);
+                        ImVec4 verdeActive = ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f);
+
+                        ImGui::PushStyleColor(ImGuiCol_Header, verdeNormal);
+                        ImGui::PushStyleColor(ImGuiCol_HeaderHovered, verdeHover);
+                        ImGui::PushStyleColor(ImGuiCol_HeaderActive, verdeActive);
+                        bool open_collap = ImGui::CollapsingHeader(title.c_str());
+                        ImGui::PopStyleColor(3);
+
+                        if (open_collap) {
                             Plane* plane = planeList[i];
                             // get the the last time was the plane detected
                             auto now = std::chrono::steady_clock::now();
@@ -446,10 +481,16 @@ int main() {
                             ImGui::Text("Radar: %s", plane->info.c_str());
                             ImGui::Text("last time localised: %02d:%02d", minutes, seconds);
 
-                            if (ImGui::Button(("Delete ##" + std::to_string(i)).c_str())) {
+                            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(2.0f/255, 100.0f/255, 12.0f/255, 1.0f)); 
+                            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f)); 
+                            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f/255, 180.0f/255, 25.0f/255, 1.0f)); 
+
+                            if (ImGui::Button(("Delete " + std::to_string(i)).c_str())) {
+                                std::lock_guard<std::mutex> lock(plane_mutex);
                                 delete planeList[i];
                                 planeList.erase(planeList.begin() + i);
-                                break; // evitar invalidación
+                                ImGui::PopStyleColor(3);
+                                break; 
                             }
                         }
                     }
@@ -505,8 +546,7 @@ int main() {
                 ImVec2 size_Button = ImVec2(total_width , total_height/4.0f);
         
                 if (ImGui::Button("X", size_Button)) {  
-                     Plane_generator();
-                     counterID++;
+                    show_plane_menu = !show_plane_menu;
                      
 
                 } 
@@ -519,9 +559,8 @@ int main() {
                   }
                  
                 if (ImGui::Button("Z", size_Button)) { 
-                    if (ImGui::Button("Z", size_Button)) { 
-                        show_clean_menu = !show_clean_menu; // Abre/Cierra el menú de confirmación
-                    }
+                    show_clean_menu = !show_clean_menu; 
+                    
                  }
            
                  if (ImGui::Button("W", size_Button)) { 
@@ -537,11 +576,10 @@ int main() {
             ImGui::PopStyleVar(2);
             ImGui::PopStyleColor(5);
             
-       // buton y menu 
-
+        // buttons functions
         if (show_bulk_menu) {
-            ImGui::SetNextWindowPos(ImVec2(width*0.40f,height*0.30f));
-            ImGui::SetNextWindowSize(ImVec2( radius *(4* 0.125f), radius *(3* 0.125f) ));
+            ImGui::SetNextWindowPos(ImVec2(width*0.40f,height*0.40f),ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2( radius *(5* 0.125f), radius *(3* 0.125f) ));       //ImGuiWindowBgClickFlags_Move
             window_style();
             ImGui::Begin("randomizer generator", &show_bulk_menu,ImGuiWindowFlags_NoResize); // El & permite cerrar con la "X" de la ventana
             ImGui::Text("choose the number of airplanes:");
@@ -562,25 +600,41 @@ int main() {
                 ImGui::End();
                 F_style();
             }
+            static char bufferNombre[100] = ""; // maximun charaters for the name
 
-
-            if (show_plane_menu) {
-                ImGui::SetNextWindowPos(ImVec2(width*0.40f,height*0.35f));
-                ImGui::SetNextWindowSize(ImVec2( radius *(4* 0.125f), radius *(3* 0.125f) ));
+            if (show_plane_menu) { // jimmy
+                ImGui::SetNextWindowPos(ImVec2(width*0.40f,height*0.45f),ImGuiCond_FirstUseEver);
+                ImGui::SetNextWindowSize(ImVec2( radius *(7.5* 0.125f), radius *(5* 0.125f) ));
                 window_style();
                 ImGui::Begin("Plane generator", &show_plane_menu,ImGuiWindowFlags_NoResize); 
-                ImGui::Text("choose the number of airplanes:");
-                ImGui::SliderInt("##speed", &planes_to_add, 1, 100); // Slider de 1 a 100
-                ImGui::SliderInt("##number", &planes_to_add, 1, 100); // Slider de 1 a 100
-                ImGui::SliderInt("##number", &planes_to_add, 1, 100); // Slider de 1 a 100
+                static  int vel_x = vx ;
+                static  int vel_y = vy; 
+                static  int vel_z = vz;
+                static int position_x = fp_x;
+                static int position_y = fp_y;
+                static int position_z = fp_z;
+                 
+                
+                ImGui::Text("put settings for the airplane:");
+                ImGui::SliderInt("velocity x", &vel_x, 100, 300); 
+                ImGui::SliderInt("velocity y", &vel_y, 100, 300); 
+                ImGui::SliderInt("velocity z", &vel_z, 0, 300); 
+                ImGui::SliderInt("position x", &position_x, 0, 300); 
+                ImGui::SliderInt("position y", &position_y, 0, 300); 
+                ImGui::SliderInt("position z", &position_z, 0, 300); 
 
             
                 if (ImGui::Button("okey", ImVec2(-FLT_MIN, 0))) {
-                    for (int i = 0; i < planes_to_add; i++) {
-                        Plane_generator();
-                        counterID++;
-                    }
-                    show_bulk_menu = false; // Opcional: cerrar el menú al terminar
+                    counterID++;
+                    name_airplane = format ("A {}",counterID) ;
+                    vx = vel_x;
+                    vy = vel_y;
+                    vz = vel_z;
+                    fp_x = position_x;
+                    fp_y = position_y;
+                    fp_z = position_z;
+                    Plane_generator_custom(name_airplane,vx,vy,vz,fp_x,fp_y,fp_z,pos_airplane);
+                    
                 }
 
                 if (ImGui::Button("cancel", ImVec2(-FLT_MIN, 0))) {
@@ -592,16 +646,16 @@ int main() {
             }
 
             if (show_clean_menu) {
-                ImGui::SetNextWindowPos(ImVec2(width * 0.40f, height * 0.35f));
-                ImGui::SetNextWindowSize(ImVec2( radius *(4* 0.125f), radius *(3* 0.125f)));
+                ImGui::SetNextWindowPos(ImVec2(width * 0.40f, height*0.5),ImGuiCond_FirstUseEver);
+                ImGui::SetNextWindowSize(ImVec2( radius* (6* 0.125f), radius* (2* 0.125f)));
                 window_style();
                 ImGui::Begin("Comfirm clean", &show_clean_menu, ImGuiWindowFlags_NoResize);
                 ImGui::TextWrapped("you want to erase all the planes ?");
                 ImGui::Spacing();
 
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.1f, 0.1f, 1.0f));
-                if (ImGui::Button("erase ALL", ImVec2(150, 0))) {
-                    std::lock_guard<std::mutex> lock(plane_mutex); // Bloqueo de seguridad
+                if (ImGui::Button("erase ALL", ImVec2(-FLT_MIN, 0))) {
+                    std::lock_guard<std::mutex> lock(plane_mutex);
                     for (Plane* plane : planeList) {
                         delete plane;
                     }
@@ -610,9 +664,7 @@ int main() {
                 }
                 ImGui::PopStyleColor();
 
-                ImGui::SameLine();
-
-                if (ImGui::Button("return", ImVec2(150, 0))) {
+                if (ImGui::Button("return", ImVec2(-FLT_MIN, 0))) {
                     show_clean_menu = false;
                 }
                 ImGui::End();
@@ -621,43 +673,54 @@ int main() {
 
 
             if (show_settings_menu) {
-                ImGui::SetNextWindowPos(ImVec2(width * 0.40f, height * 0.25f));
-                ImGui::SetNextWindowSize(ImVec2(400, 350));
+                ImGui::SetNextWindowPos(ImVec2(width * 0.40f, height*0.55f),ImGuiCond_FirstUseEver);
+                ImGui::SetNextWindowSize(ImVec2(radius* (7* 0.125f), radius* (4.5f* 0.125f)));
                 window_style();
                 ImGui::Begin("Radar Settings", &show_settings_menu,ImGuiWindowFlags_NoResize);
                 {
-                    // Usamos variables temporales para los sliders
+                    
                     static int s_range = (int)range;
                     static int s_minDeg = minDeg;
                     static int s_maxDeg = maxDeg;
                     static int s_dps = degPerSec;
                     static int s_gain = gain;
 
-                    ImGui::Text("Ajustes del Sistema de Radar");
+                    ImGui::Text("Radar settings");
                     ImGui::Separator();
 
-                    // Sliders para configurar parámetros
-                    ImGui::SliderInt("Rango (m)", &s_range, 1000, 200000);
-                    ImGui::SliderInt("Ángulo Mín", &s_minDeg, 0, 359);
-                    ImGui::SliderInt("Ángulo Máx", &s_maxDeg, 1, 360);
-                    ImGui::SliderInt("Velocidad (deg/s)", &s_dps, 1, 360);
-                    ImGui::SliderInt("Ganancia (dBi)", &s_gain, 1, 60);
+                    
+                    ImGui::SliderInt("Range (m)", &s_range, 1000, 200000);
+                    ImGui::SliderInt("Angle Mín", &s_minDeg, 0, 359);
+                    ImGui::SliderInt("Angle Máx", &s_maxDeg, 1, 360);
+                    ImGui::SliderInt("Velocity (deg/s)", &s_dps, 1, 360);
+                    ImGui::SliderInt("Gain (dBi)", &s_gain, 1, 60);
 
                     ImGui::Spacing();
 
-                    if (ImGui::Button("Aplicar Cambios", ImVec2(-FLT_MIN, 0))) {
-                        // protecd the radar for dont have bugs
-                        std::lock_guard<std::mutex> lock(plane_mutex); 
+                    if (ImGui::Button("Aply changes", ImVec2(-FLT_MIN, 0))) {
                         
                         radar.setRange(s_range);
                         radar.setDPS(s_dps);
-                        
                         range = s_range;
                         degPerSec = s_dps;
                         gain = s_gain;
                         
                         show_settings_menu = false; 
                     }
+
+
+                     if (ImGui::Button("Default settings", ImVec2(-FLT_MIN, 0))) {
+                        
+                        s_range =100000;
+                        s_dps = 30;
+                        s_gain = 34;
+
+                        range = s_range;
+                        degPerSec = s_dps;
+                        gain = s_gain;
+                        
+                    }
+
 
                     if (ImGui::Button("Close", ImVec2(-FLT_MIN, 0))) {
                         show_settings_menu = false;
@@ -685,9 +748,8 @@ int main() {
                 float total_width = ImGui::GetContentRegionAvail().x;
                 float total_height = ImGui::GetContentRegionAvail().y;
                 ImVec2 size_Button = ImVec2(total_width , total_height);
-
                 if (ImGui::Button(no_collapsed ? "<" : ">", size_Button)) {
-                no_collapsed = !no_collapsed; // Alternar estado
+                no_collapsed = !no_collapsed; 
                 
                 }
 
@@ -707,7 +769,7 @@ int main() {
         ImGui::Render();
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h); // get the buffersize 
-        glViewport(0, 0, display_w, display_h);// definethe renderize area 
+        glViewport(0, 0, display_w, display_h);// define the renderize area 
 
         // define the colours in the window.
         glClearColor( 25.0f/255, 25.0f/255, 25.0f/255, 1.0f);   
@@ -720,7 +782,7 @@ int main() {
     radarThread.join();
 
     for (Plane* plane : planeList) {
-        delete plane; // Libera la memoria de cada objeto
+        delete plane; // clean the memory of any object and erase them 
     }
     planeList.clear();
   
