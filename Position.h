@@ -29,6 +29,11 @@ public:
         y = m_y;
         z = m_z;
     }
+    void set_position(double xx, double yy,double zz){ //when we dont care about height
+        m_x = xx;
+        m_y = yy;
+        m_z = zz;
+    }
     double getX(){ //get x
         return m_x;
     }
