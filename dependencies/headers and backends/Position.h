@@ -1,6 +1,4 @@
 #pragma once
-#include <cmath>
-#include <string>
 
 using namespace std;
 
@@ -46,11 +44,12 @@ public:
         return m_z;
     }
 
-    std::string toString(){ //convert position to a string (for output)
+    string showpos(){ //convert position to a string (for output)
         double x = std::round(m_x * 100) / 100; //round to 2 decimal places
         double y = std::round(m_y * 100) / 100;
         double z = std::round(m_z * 100) / 100;
-        return std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z);
+        string result = format ("{:.2f}, {:.2f}, {:.2f} ",x,y,z);
+        return result ;
     }
     
     Position operator+(const Position& right) const;
