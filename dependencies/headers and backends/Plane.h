@@ -147,7 +147,7 @@ string Plane::getplaneName(){
 //update position based on aircraft speed and time since last update
 void Plane::positionUpdate(chrono::steady_clock::time_point time){
 
-    auto duration = chrono::duration_cast<std::chrono::milliseconds>(timeOfLastUpdate - time); //time since position was last updated
+    auto duration = chrono::duration_cast<std::chrono::milliseconds>(time-timeOfLastUpdate); //time since position was last updated
     double seconds = static_cast<double>(duration.count()) / 1000; //convert milliseconds to seconds
     Position distanceTravelled((m_speedx * seconds), (m_speedy * seconds), (m_speedz * seconds)); //the amount of distance travelled
     
