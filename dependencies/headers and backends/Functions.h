@@ -19,11 +19,11 @@ double c = 299792458; //speed of light (m/s)
 double k = 0.00000000000000000000001380649; //Boltzmann's constant
 
 double degToRad(double deg){ //convert degrees to radians
-    double rad = deg * (3.14 / 180);
+    double rad = deg * (pi / 180);
     return rad;
 }
 double radToDeg(double rad){ //convert radians to degrees
-    double deg = rad * (180 / 3.14);
+    double deg = rad * (180 / pi);
     return deg;
 }
 
@@ -61,6 +61,22 @@ double relativeFlatAngle(Position pos, Radar radar){ //find flat ground angle be
     }
     return 0; //this should litreally never happen, this is just so the code actually compiles
 }
+
+double relativeFlatAngle_D(Position pos, Radar radar){
+    Position vector = pos - radar.getPosition();
+    double x, y, z;
+    vector.getXYZ(x, y, z);
+
+    // atan2 devuelve radianes entre -pi y pi
+    double angle = radToDeg(atan2(y, x));
+
+    // Corrección estándar para rango 0-360
+    if (angle < 0) {
+        angle += 360.0;
+    }
+    return angle;
+}
+
 double relativeHeightAngle(Position pos, Radar radar){ //find height angle between two points
     Position radarPos = radar.getPosition();
     Position vector = pos - radarPos; //vector that spans between the two points
@@ -70,6 +86,13 @@ double relativeHeightAngle(Position pos, Radar radar){ //find height angle betwe
 
     double angle = radToDeg(atan2(flatMagnitude, magnitude)); //get the height angle
     return angle;
+}
+
+double relativeHeightAngle_D(Position pos, Radar radar){ //find height angle between two points
+   Position diff = pos - radar.getPosition();
+    double flatDist = sqrt(pow(diff.getX(), 2) + pow(diff.getY(), 2));
+    // atan2(opuesto, adyacente)
+    return radToDeg(atan2(diff.getZ(), flatDist));
 }
 
 double calculateSNR(Position pos, Radar radar){ //calculate the linear Signal to Noise ratio of the recieved radio waves
