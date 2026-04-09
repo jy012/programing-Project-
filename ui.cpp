@@ -17,12 +17,14 @@
 #include <thread>
 #include <chrono>
 #include <mutex> // for protect the thread of the clean button 
-// Radar Libraries 
+// Radar Libraries  adn extras
 #include "Radar.h"
 #include "Position.h"
 #include "Plane.h"
 #include "Functions.h" 
 #include <future>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 using namespace std;
 
@@ -41,6 +43,40 @@ void Plane_generator (){
     planeList.push_back(new Plane(ID));
    
  }
+
+
+
+// // auxiliar function for uplowd a texture to opnegl from a file 
+ bool LoadTextureFromFile(const char* filename, GLuint* out_texture, int* out_width, int* out_height) {
+    // Cargar imagen
+    int image_width, image_height, image_channels;
+    unsigned char* image_data = stbi_load(filename, &image_width, &image_height, &image_channels, 4);
+    if (image_data == NULL) return false;
+
+    // Crear textura de OpenGL
+    GLuint image_texture;
+    glGenTextures(1, &image_texture);
+    glBindTexture(GL_TEXTURE_2D, image_texture);
+
+    // Configuración necesaria para que la imagen se vea bien
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    // Subir píxeles a la GPU
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+    stbi_image_free(image_data);
+
+    *out_texture = image_texture;
+    *out_width = image_width;
+    *out_height = image_height;
+
+    return true;
+}
+
+
+
   
 
 
@@ -225,9 +261,18 @@ int main() {
     float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); 
      GLFWwindow* window = glfwCreateWindow((int)(1280 * main_scale), (int)(800 * main_scale), "", NULL, NULL);
     if (!window) { glfwTerminate(); return 1; }
-
+    // images
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); 
+    GLuint iconX, iconY, iconZ, iconW, iconMin,iconMax;
+    int my_width, my_height;
+
+    bool retX = LoadTextureFromFile("dependencies/icons/Agregar.png", &iconX, &my_width, &my_height);
+    bool retY = LoadTextureFromFile("dependencies/icons/Random.png", &iconY, &my_width, &my_height);
+    bool retZ = LoadTextureFromFile("dependencies/icons/Eliminar.png", &iconZ, &my_width, &my_height);
+    bool retW = LoadTextureFromFile("dependencies/icons/Ajustes.png", &iconW, &my_width, &my_height);
+    bool inMI = LoadTextureFromFile("dependencies/icons/Flecha izquierda.png", &iconMin, &my_width, &my_height);
+    bool inMA = LoadTextureFromFile("dependencies/icons/Flecha derecha.png", &iconMax, &my_width, &my_height);
 
 // open bool variables 
 
@@ -476,20 +521,20 @@ int main() {
 
                             Position pos = plane->getPosition();
 
-                            ImGui::Text("ID: %zu", i);
-                            ImGui::Text("Position: %s", pos.toString().c_str());
-                            ImGui::Text("Radar: %s", plane->info.c_str());
-                            ImGui::Text("last time localised: %02d:%02d", minutes, seconds);
+                            ImGui::TextWrapped("ID: %zu", i);
+                            ImGui::TextWrapped("Position: %s", pos.showpos().c_str());
+                            ImGui::TextWrapped("Radar: %s", plane->info.c_str());
+                            ImGui::TextWrapped("last time localised: %02d:%02d", minutes, seconds);
 
                             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(2.0f/255, 100.0f/255, 12.0f/255, 1.0f)); 
                             ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(5.0f/255, 143.0f/255, 18.0f/255, 1.0f)); 
                             ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.0f/255, 180.0f/255, 25.0f/255, 1.0f)); 
-
-                            if (ImGui::Button(("Delete " + std::to_string(i)).c_str())) {
+                            bool deletePressed = ImGui::Button("Delete");
+                            ImGui::PopStyleColor(3);
+                            if (deletePressed) {
                                 std::lock_guard<std::mutex> lock(plane_mutex);
                                 delete planeList[i];
                                 planeList.erase(planeList.begin() + i);
-                                ImGui::PopStyleColor(3);
                                 break; 
                             }
                         }
@@ -534,40 +579,48 @@ int main() {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 1.0f)); //  when they dected the mouse
         ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.1f, 0.1f, 0.1f, 1.0f)); // whent they do click 
         
+        
+        
            
              if (ImGui::Begin("buttons", NULL, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse| ImGuiWindowFlags_NoTitleBar)){
                 
-              // made buttons have no space with each other 
+              // made buttons have no space with each other jimmy 
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
                 float total_width = ImGui::GetContentRegionAvail().x;
                 float total_height = ImGui::GetContentRegionAvail().y;
+                ImVec2 button_size = ImVec2(total_width , total_height/4);// scale for the icons  the icons 
+                ImVec2 iconSize = ImVec2(24 * main_scale, 24 * main_scale);
+
+                float padX = (button_size.x - iconSize.x) / 2.0f;
+                float padY = (button_size.y - iconSize.y) / 2.0f;
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(padX, padY));
+               
     
-                 // Dividimos el ancho total entre 4
-                ImVec2 size_Button = ImVec2(total_width , total_height/4.0f);
-        
-                if (ImGui::Button("X", size_Button)) {  
+            
+                // jimmy 
+                if (ImGui::ImageButton("X", (ImTextureID)(intptr_t)iconX, iconSize)) {  
                     show_plane_menu = !show_plane_menu;
                      
 
                 } 
                 
                
-                 if (ImGui::Button("Y", size_Button)) {   
+                 if (ImGui::ImageButton("Y", (ImTextureID)(intptr_t)iconY, iconSize)) {   
                     show_bulk_menu = !show_bulk_menu;
                 
 
                   }
                  
-                if (ImGui::Button("Z", size_Button)) { 
+                if (ImGui::ImageButton("Z", (ImTextureID)(intptr_t)iconZ, iconSize)) { 
                     show_clean_menu = !show_clean_menu; 
                     
                  }
            
-                 if (ImGui::Button("W", size_Button)) { 
+                 if (ImGui::ImageButton("W", (ImTextureID)(intptr_t)iconW, iconSize)) { 
                     show_settings_menu = !show_settings_menu;
                  }
 
-                ImGui::PopStyleVar();
+                ImGui::PopStyleVar(2);
                
 
             }
@@ -579,7 +632,7 @@ int main() {
         // buttons functions
         if (show_bulk_menu) {
             ImGui::SetNextWindowPos(ImVec2(width*0.40f,height*0.40f),ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2( radius *(5* 0.125f), radius *(3* 0.125f) ));       //ImGuiWindowBgClickFlags_Move
+            ImGui::SetNextWindowSize(ImVec2( radius *(5* 0.125f), radius *(2.8* 0.125f) ));       //ImGuiWindowBgClickFlags_Move
             window_style();
             ImGui::Begin("randomizer generator", &show_bulk_menu,ImGuiWindowFlags_NoResize); // El & permite cerrar con la "X" de la ventana
             ImGui::Text("choose the number of airplanes:");
@@ -602,9 +655,9 @@ int main() {
             }
             static char bufferNombre[100] = ""; // maximun charaters for the name
 
-            if (show_plane_menu) { // jimmy
-                ImGui::SetNextWindowPos(ImVec2(width*0.40f,height*0.45f),ImGuiCond_FirstUseEver);
-                ImGui::SetNextWindowSize(ImVec2( radius *(7.5* 0.125f), radius *(5* 0.125f) ));
+            if (show_plane_menu) { 
+                ImGui::SetNextWindowPos(ImVec2(width*0.5f,height*0.45f),ImGuiCond_FirstUseEver);
+                ImGui::SetNextWindowSize(ImVec2( radius *(7.5* 0.125f), radius *(5.2* 0.125f) ));
                 window_style();
                 ImGui::Begin("Plane generator", &show_plane_menu,ImGuiWindowFlags_NoResize); 
                 static  int vel_x = vx ;
@@ -638,7 +691,7 @@ int main() {
                 }
 
                 if (ImGui::Button("cancel", ImVec2(-FLT_MIN, 0))) {
-                    show_bulk_menu = false;
+                    show_plane_menu = false;
                 }
 
                 ImGui::End();
@@ -646,8 +699,8 @@ int main() {
             }
 
             if (show_clean_menu) {
-                ImGui::SetNextWindowPos(ImVec2(width * 0.40f, height*0.5),ImGuiCond_FirstUseEver);
-                ImGui::SetNextWindowSize(ImVec2( radius* (6* 0.125f), radius* (2* 0.125f)));
+                ImGui::SetNextWindowPos(ImVec2(width * 0.40f, height*0.65),ImGuiCond_FirstUseEver);
+                ImGui::SetNextWindowSize(ImVec2( radius* (6* 0.125f), radius* (2.2* 0.125f)));
                 window_style();
                 ImGui::Begin("Comfirm clean", &show_clean_menu, ImGuiWindowFlags_NoResize);
                 ImGui::TextWrapped("you want to erase all the planes ?");
@@ -673,8 +726,8 @@ int main() {
 
 
             if (show_settings_menu) {
-                ImGui::SetNextWindowPos(ImVec2(width * 0.40f, height*0.55f),ImGuiCond_FirstUseEver);
-                ImGui::SetNextWindowSize(ImVec2(radius* (7* 0.125f), radius* (4.5f* 0.125f)));
+                ImGui::SetNextWindowPos(ImVec2(width * 0.5f, height*0.65f),ImGuiCond_FirstUseEver);
+                ImGui::SetNextWindowSize(ImVec2(radius* (7.4* 0.125f), radius* (5.5* 0.125f)));
                 window_style();
                 ImGui::Begin("Radar Settings", &show_settings_menu,ImGuiWindowFlags_NoResize);
                 {
@@ -689,7 +742,7 @@ int main() {
                     ImGui::Separator();
 
                     
-                    ImGui::SliderInt("Range (m)", &s_range, 1000, 200000);
+                    ImGui::SliderInt("Range (m)", &s_range, 1000, 100000);
                     ImGui::SliderInt("Angle Mín", &s_minDeg, 0, 359);
                     ImGui::SliderInt("Angle Máx", &s_maxDeg, 1, 360);
                     ImGui::SliderInt("Velocity (deg/s)", &s_dps, 1, 360);
@@ -748,12 +801,18 @@ int main() {
                 float total_width = ImGui::GetContentRegionAvail().x;
                 float total_height = ImGui::GetContentRegionAvail().y;
                 ImVec2 size_Button = ImVec2(total_width , total_height);
-                if (ImGui::Button(no_collapsed ? "<" : ">", size_Button)) {
+                ImVec2 iconSize = ImVec2(24 * main_scale, 24 * main_scale);
+                float padX = (size_Button.x - iconSize.x) / 2.0f;
+                float padY = (size_Button.y - iconSize.y) / 2.0f;
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(padX, padY));
+
+                ImTextureID Actual = no_collapsed ? iconMin : iconMax;
+                if (ImGui::ImageButton("colap_b",Actual,iconSize)) {
                 no_collapsed = !no_collapsed; 
                 
                 }
 
-                ImGui::PopStyleVar(3);
+                ImGui::PopStyleVar(4);
                 ImGui::PopStyleColor();
             }
                 
