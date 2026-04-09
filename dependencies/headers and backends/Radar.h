@@ -86,16 +86,16 @@ public:
     void printPlaneDetected(Position planePos, double fdeg, double hdeg, double magnitude, double SNR, double rangeAccuracy, double angleAccuracy){ //this is just to display all the information the radar has about the plane
 
         cout << format("Plane detected:\nPosition: ({}) meters\nAngle: {:.2f} degrees flat, {:.2f} degrees high\nMagntiude: {:.2f} meters\nSNR: {:.2f} S/N, ({:.2f} decibels)\nRange Accuracy: {:.2f} meters, Angular Accuracy: {:.4f} degrees\n\n",
-            planePos.toString(), fdeg, hdeg, magnitude, SNR, 10 * std::log10(SNR), rangeAccuracy, angleAccuracy);
+            planePos.showpos(), fdeg, hdeg, magnitude, SNR, 10 * std::log10(SNR), rangeAccuracy, angleAccuracy);
     }
 
 
     string printPlaneDetected_final(Position planePos, double fdeg, double hdeg, double magnitude, double SNR, double rangeAccuracy, double angleAccuracy){ //this is just to display all the information the radar has about the plane
          return std::format(
-        "Plane detected:\nPosition: ({}) meters\nAngle: {:.2f} degrees flat, {:.2f} degrees high\n"
+        "\nPlane detected:\nco-ords:{} m\nAngle: \n *degrees flat {:.2f} \n *degrees high {:.2f} \n"
         "Magntiude: {:.2f} meters\nSNR: {:.2f} S/N, ({:.2f} decibels)\n"
-        "Range Accuracy: {:.2f} meters \n Angular Accuracy: {:.4f} degrees\n\n",
-        planePos.toString(), fdeg, hdeg, magnitude, SNR, 10 * std::log10(SNR), rangeAccuracy, angleAccuracy
+        "Range Accuracy: {:.2f} meters \nAngular Accuracy: {:.4f} degrees\n\n",
+        planePos.showpos(), fdeg, hdeg, magnitude, SNR, 10 * std::log10(SNR), rangeAccuracy, angleAccuracy
     );
 
     }
