@@ -25,9 +25,18 @@
 #include <future>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#include <GL/glcorearb.h>
 
-using namespace std;
+#if defined(__APPLE__)
+//none  your good
+#else 
+#include <glad/glad.h> 
+
+#endif
+
+
+
+
+using namespace std; 
 
 bool running = true;
 mutex plane_mutex;
@@ -782,14 +791,14 @@ int main() {
                 ImGui::Spacing();
               
                 if (pickingStep == 0) {
-                    if (ImGui::Button("Definir Trayectoria en Radar", ImVec2(-FLT_MIN, 40))) {
+                    if (ImGui::Button("define the trayectory", ImVec2(-FLT_MIN, 40))) {
                     isPickingPosition = true;
                     pickingStep = 1; 
                     }
                 } else {
-                    string msg = (pickingStep == 1) ? "Haz clic para el ORIGEN" : "Haz clic para el DESTINO";
+                    string msg = (pickingStep == 1) ? "do a click for set ORIGIN" : "set the destiny ";
                     ImGui::TextColored(ImVec4(0, 1, 1, 1), ">>> %s <<<", msg.c_str());
-                    if (ImGui::Button("Cancelar", ImVec2(-FLT_MIN, 0))) {
+                    if (ImGui::Button("Cancel", ImVec2(-FLT_MIN, 0))) {
                         pickingStep = 0;
                         isPickingPosition = false;
                     }
