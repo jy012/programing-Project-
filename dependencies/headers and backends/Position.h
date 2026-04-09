@@ -20,7 +20,7 @@ public:
     }
     Position(double xx, double yy){ //when we dont care about height
         m_x = xx;
-        m_y = xx;
+        m_y = yy;
         m_z = 0;
     }
 
