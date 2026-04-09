@@ -25,13 +25,18 @@
 #include <future>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include <GL/glcorearb.h>
 
 using namespace std;
 
-
+bool running = true;
 mutex plane_mutex;
 vector<Plane*> planeList; //list of all planes
 static int counterID = 0;
+static bool show_plane_menu = false;
+static bool show_bulk_menu = false;
+static bool show_clean_menu = false;
+static bool show_settings_menu = false;
 
 
 size_t detector_newplane = planeList.size();
@@ -43,8 +48,6 @@ void Plane_generator (){
     planeList.push_back(new Plane(ID));
    
  }
-
-
 
 // // auxiliar function for uplowd a texture to opnegl from a file 
  bool LoadTextureFromFile(const char* filename, GLuint* out_texture, int* out_width, int* out_height) {
@@ -74,11 +77,6 @@ void Plane_generator (){
 
     return true;
 }
-
-
-
-  
-
 
 Position p(0, 0, 0); 
 long long range = 100000;
@@ -117,10 +115,6 @@ void Plane_generator_custom (string name ,double Vx,double Vy,double Vz,double t
 
 
 
-
-bool running = true;
-
-
 void  Radar_loop(){
     Position origin = radar.getPosition(); //radar position (never changes)
 
@@ -154,8 +148,8 @@ void  Radar_loop(){
                 bool planeDetected = false; //this is just to prevent having to call the the printPlaneDetected twice for both edge cases
 
                 if (planeMagnitude <= radar.getRange()){ //check if plane is within range
-                    planeFlatDeg = relativeFlatAngle(pos, radar); //calculate flat angle
-                    planeHeightDeg = relativeHeightAngle(pos, radar); //calculate height angle
+                    planeFlatDeg = relativeFlatAngle_D(pos, radar); //calculate flat angle
+                    planeHeightDeg = relativeHeightAngle_D(pos, radar); //calculate height angle
                     if ((currentDeg + degreesTurned) > 360){ //for special case (e.g. 300 + 70 = 370, without extra logic it wont detect planes within that 0-10 degree window)
                         double extraDeg = (currentDeg + degreesTurned) - 360; //this wont factor in if it did a full circle more than once, but that is in all likelihood not possible
                         if (extraDeg >= currentDeg){ //radar has pinged every angle
@@ -185,6 +179,118 @@ void  Radar_loop(){
     }
 }
 
+ImVec2 GetDirectiont(ImVec2 from, ImVec2 to) {
+    ImVec2 d = {to.x - from.x, to.y - from.y};
+    double len = sqrt(d.x*d.x + d.y*d.y);
+    if (len > 0.0001) {
+        d.x /= len;
+        d.y /= len;
+    }
+    return d;
+}
+
+
+static bool  isPickingPosition = false; 
+float manual_vz = 0;
+static int pickingStep = 0; 
+static Position startPos(0,0,0);
+static float manual_speed = 200.0f; // Magnitud de velocidad deseada
+static float manual_z_pos = 0 ;
+
+void HandleRadarTwoClicks(ImDrawList* draw_list, ImVec2 center, float radius, long long range) {
+    if (!isPickingPosition || pickingStep == 0) return;
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImVec2 mousePos = io.MousePos;
+    
+   // mouse distance bettewn the center of the raar
+    float dx = mousePos.x - center.x;
+    float dy = mousePos.y - center.y;
+    float distPx = sqrtf(dx * dx + dy * dy);
+    bool mouseOverRadar = (distPx <= radius);
+
+    if (mouseOverRadar) {
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    }
+
+    // convert pilex to meters
+    double scale = (double)range / (double)radius;
+
+    // drawing
+    if (pickingStep == 1) {
+        if (mouseOverRadar) {
+            draw_list->AddCircleFilled(mousePos, 6.0f, IM_COL32(0, 255, 255, 150));
+        }
+    } 
+    else if (pickingStep == 2) {
+        // convert the position to pixels 
+        ImVec2 originPx = ImVec2(
+            center.x + (float)(startPos.getX() / scale),
+            center.y + (float)(startPos.getY() / scale)
+        );
+
+        draw_list->AddCircleFilled(originPx, 6.0f, IM_COL32(0, 255, 255, 255));
+        
+        if (mouseOverRadar) {
+            draw_list->AddLine(originPx, mousePos, IM_COL32(0, 255, 255, 200), 2.0f);
+        } else {
+            // blue line draw
+            float angleToMouse = atan2f(dy, dx);
+            ImVec2 edgePoint = ImVec2(center.x + cosf(angleToMouse) * radius, center.y + sinf(angleToMouse) * radius);
+            draw_list->AddLine(originPx, edgePoint, IM_COL32(0, 255, 255, 100), 2.0f);
+        }
+    }
+
+    // process clicks
+    if (mouseOverRadar && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered()) {
+        // Conversión directa: Píxel relativo -> Mundo
+        double worldX = (double)dx * scale;
+        double worldY = (double)dy * scale;
+
+        if (pickingStep == 1) {
+            startPos.set_position(worldX, worldY, (double)manual_z_pos);
+            pickingStep = 2;
+        } 
+        else if (pickingStep == 2) {
+            double dirX = worldX - startPos.getX();
+            double dirY = worldY - startPos.getY();
+            double distance = sqrt(dirX * dirX + dirY * dirY);
+
+            if (distance > 1.0) {
+               
+                double vx = (dirX / distance) * (double)manual_speed;
+                double vy = (dirY / distance) * (double)manual_speed;
+
+                counterID++;
+                string name = format("A-T-{}", counterID);
+                
+                Plane* newPlane = new Plane(name, vx, vy, (double)manual_vz, startPos);
+                
+                // Data before the firts scan
+                newPlane->lastDetectedTime = std::chrono::steady_clock::now();
+                double angleDeg = radToDeg(atan2(startPos.getY(), startPos.getX()));
+                if (angleDeg < 0) angleDeg += 360.0; // Rango 0-360 coherente con Radar_loop
+                
+                newPlane->lastDetectedAngle = (float)angleDeg;
+                newPlane->lastDetectedDistance = (float)sqrt(pow(startPos.getX(), 2) + pow(startPos.getY(), 2));
+                newPlane->isVisible = true;
+                newPlane->info = "Manual placement";
+
+                {
+                    lock_guard<std::mutex> lock(plane_mutex);
+                    planeList.push_back(newPlane);
+                }
+            }
+
+            pickingStep = 0;
+            isPickingPosition = false;
+            show_plane_menu = false;
+        }
+    }
+}
+
+  
+
 void window_style() {
     // window colors 
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(33.0f/255, 33.0f/255, 33.0f/255, 1.0f));
@@ -206,7 +312,7 @@ void window_style() {
 }
 
 void F_style() {
-    // Sacamos los 6 colores que empujamos anteriormente
+    
     ImGui::PopStyleColor(11);
 }
 
@@ -215,14 +321,13 @@ static void glfw_error_callback(int error, const char* description)
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
 
+
+
+
 int main() {
-    static bool show_plane_menu = false;
-    static bool show_bulk_menu = false;
-    static bool show_clean_menu = false;
-    static bool show_settings_menu = false;
     static int planes_to_add = 1;
     
-    glfwSetErrorCallback(glfw_error_callback); // error mesague displayer 
+    glfwSetErrorCallback(glfw_error_callback); // error mesage displayer 
     if (!glfwInit()) return 1; // initialize gflw
 
     //define the vertion 
@@ -297,9 +402,7 @@ int main() {
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    //radar loop 
-
-   
+    
 
     // 4. mian loop
     thread radarThread(Radar_loop);
@@ -343,7 +446,11 @@ int main() {
         // animation of the trail  variables 
         float radius = (height *0.45f); 
         splitter.SetCurrentChannel(draw_list, 2);
+        HandleRadarTwoClicks(draw_list,p, large, radar.getRange());
+       
 
+     
+        
             // plane drawing 
         auto now = std::chrono::steady_clock::now();
         for (Plane* plane : planeList) {
@@ -399,19 +506,23 @@ int main() {
         
 
             for (int i = 1; i <= 8; i++) {
-            float multiplier = (i * 0.125f);
-            float f_radius = radius * multiplier;
-            std::string distanceText = std::format("{:.1f}k", i * 12.5f);
-            ImVec2 textSize = ImGui::CalcTextSize(distanceText.c_str());
+                float multiplier = (i * 0.125f);
+                float f_radius = radius * multiplier;
+                std::string distanceText = std::format("{:.1f}k", i * 12.5f);
+                ImVec2 textSize = ImGui::CalcTextSize(distanceText.c_str());
 
-            ImVec2 posH = ImVec2(p.x - f_radius - (textSize.x / 2.0f), p.y - 20.0f);
-            draw_list->AddText(posH, color, distanceText.c_str());
+                ImVec2 posH = ImVec2(p.x - f_radius - (textSize.x / 2.0f), p.y - 20.0f);
+                draw_list->AddText(posH, color, distanceText.c_str());
 
-            ImVec2 posV = ImVec2(p.x - textSize.x - 10.0f, p.y - f_radius - (textSize.y / 2.0f));
-            draw_list->AddText(posV, color, distanceText.c_str());
+                ImVec2 posV = ImVec2(p.x - textSize.x - 10.0f, p.y - f_radius - (textSize.y / 2.0f));
+                draw_list->AddText(posV, color, distanceText.c_str());
 
-            draw_list ->AddCircle(p,f_radius,color,0,thickness); 
-        }
+                draw_list ->AddCircle(p,f_radius,color,0,thickness); 
+            }
+
+        // draw for teup the position 
+      
+
 
         float H1 = (constant_height - (radius));
         float H2 = (constant_height + (radius));
@@ -584,12 +695,12 @@ int main() {
            
              if (ImGui::Begin("buttons", NULL, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse| ImGuiWindowFlags_NoTitleBar)){
                 
-              // made buttons have no space with each other jimmy 
+              // made buttons have no space with each other  
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
                 float total_width = ImGui::GetContentRegionAvail().x;
                 float total_height = ImGui::GetContentRegionAvail().y;
                 ImVec2 button_size = ImVec2(total_width , total_height/4);// scale for the icons  the icons 
-                ImVec2 iconSize = ImVec2(24 * main_scale, 24 * main_scale);
+                ImVec2 iconSize = ImVec2(radius *(0.7* 0.125f),radius *(0.7* 0.125f));
 
                 float padX = (button_size.x - iconSize.x) / 2.0f;
                 float padY = (button_size.y - iconSize.y) / 2.0f;
@@ -597,7 +708,6 @@ int main() {
                
     
             
-                // jimmy 
                 if (ImGui::ImageButton("X", (ImTextureID)(intptr_t)iconX, iconSize)) {  
                     show_plane_menu = !show_plane_menu;
                      
@@ -632,9 +742,9 @@ int main() {
         // buttons functions
         if (show_bulk_menu) {
             ImGui::SetNextWindowPos(ImVec2(width*0.40f,height*0.40f),ImGuiCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2( radius *(5* 0.125f), radius *(2.8* 0.125f) ));       //ImGuiWindowBgClickFlags_Move
+            ImGui::SetNextWindowSize(ImVec2( radius *(5* 0.125f), radius *(2.8* 0.125f) ));       //
             window_style();
-            ImGui::Begin("randomizer generator", &show_bulk_menu,ImGuiWindowFlags_NoResize); // El & permite cerrar con la "X" de la ventana
+            ImGui::Begin("randomizer generator", &show_bulk_menu,ImGuiWindowFlags_NoResize); 
             ImGui::Text("choose the number of airplanes:");
             ImGui::SliderInt("##number", &planes_to_add, 1, 100); // Slider de 1 a 100
         
@@ -643,7 +753,7 @@ int main() {
                         Plane_generator();
                         counterID++;
                     }
-                    show_bulk_menu = false; // Opcional: cerrar el menú al terminar
+                    show_bulk_menu = false; 
                 }
 
                 if (ImGui::Button("cancel", ImVec2(-FLT_MIN, 0))) {
@@ -660,38 +770,34 @@ int main() {
                 ImGui::SetNextWindowSize(ImVec2( radius *(7.5* 0.125f), radius *(5.2* 0.125f) ));
                 window_style();
                 ImGui::Begin("Plane generator", &show_plane_menu,ImGuiWindowFlags_NoResize); 
-                static  int vel_x = vx ;
-                static  int vel_y = vy; 
-                static  int vel_z = vz;
-                static int position_x = fp_x;
-                static int position_y = fp_y;
-                static int position_z = fp_z;
-                 
                 
                 ImGui::Text("put settings for the airplane:");
-                ImGui::SliderInt("velocity x", &vel_x, 100, 300); 
-                ImGui::SliderInt("velocity y", &vel_y, 100, 300); 
-                ImGui::SliderInt("velocity z", &vel_z, 0, 300); 
-                ImGui::SliderInt("position x", &position_x, 0, 300); 
-                ImGui::SliderInt("position y", &position_y, 0, 300); 
-                ImGui::SliderInt("position z", &position_z, 0, 300); 
+                ImGui::Text("1. define the velocity (units/s):");
+                ImGui::SliderFloat("Velocidad Total", &manual_speed, 10.0f, 600.0f);
+                ImGui::SliderFloat("Velocity Z", &manual_vz, -100.0f, 100.0f);
+                ImGui::Separator();
+                ImGui::Text("2. initial altitude :");
+                ImGui::SliderFloat("position Z", &manual_z_pos, 0.0f, 10000.0f);
 
-            
-                if (ImGui::Button("okey", ImVec2(-FLT_MIN, 0))) {
-                    counterID++;
-                    name_airplane = format ("A {}",counterID) ;
-                    vx = vel_x;
-                    vy = vel_y;
-                    vz = vel_z;
-                    fp_x = position_x;
-                    fp_y = position_y;
-                    fp_z = position_z;
-                    Plane_generator_custom(name_airplane,vx,vy,vz,fp_x,fp_y,fp_z,pos_airplane);
-                    
+                ImGui::Spacing();
+              
+                if (pickingStep == 0) {
+                    if (ImGui::Button("Definir Trayectoria en Radar", ImVec2(-FLT_MIN, 40))) {
+                    isPickingPosition = true;
+                    pickingStep = 1; 
+                    }
+                } else {
+                    string msg = (pickingStep == 1) ? "Haz clic para el ORIGEN" : "Haz clic para el DESTINO";
+                    ImGui::TextColored(ImVec4(0, 1, 1, 1), ">>> %s <<<", msg.c_str());
+                    if (ImGui::Button("Cancelar", ImVec2(-FLT_MIN, 0))) {
+                        pickingStep = 0;
+                        isPickingPosition = false;
+                    }
                 }
 
                 if (ImGui::Button("cancel", ImVec2(-FLT_MIN, 0))) {
                     show_plane_menu = false;
+                    isPickingPosition = false;
                 }
 
                 ImGui::End();
