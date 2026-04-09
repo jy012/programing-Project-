@@ -135,7 +135,7 @@ void Plane::printall(){
     cout << m_speedx << endl;
     cout << m_speedy << endl;
     cout << m_speedz << endl;
-    cout << m_pos.toString() << endl;
+    cout << m_pos.showpos() << endl;
 }
 
 
