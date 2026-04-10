@@ -6,7 +6,26 @@ Select the option Create tasks.json file from template copy and paste the task.j
 
 
 
-for mac : (you need home brew for this one )
+for mac : (you need home brew for this one ):
+/usr/bin/g++ -std=c++20 -g RadarApp.cpp \
+dependencies/imgui/imgui.cpp \
+dependencies/imgui/imgui_draw.cpp \
+dependencies/imgui/imgui_tables.cpp \
+dependencies/imgui/imgui_widgets.cpp \
+dependencies/imgui/backends/imgui_impl_glfw.cpp \
+dependencies/imgui/backends/imgui_impl_opengl3.cpp \
+-Idependencies/imgui \
+-I"dependencies/headers and backends" \
+-Idependencies/GFLW/include \
+-Idependencies/imgui/backends \
+-I/opt/homebrew/include \
+-L/opt/homebrew/lib \
+-lglfw \
+-framework OpenGL \
+-framework Cocoa \
+-framework IOKit \
+-framework CoreVideo \
+-o RadarApp
 
     
 With out homwbrew  :
