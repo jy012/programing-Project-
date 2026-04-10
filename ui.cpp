@@ -1,3 +1,4 @@
+
 #include "imgui.h" // core  of dear imgui
 #include "imgui_impl_glfw.h" // adapter for  GFLW
 #include "imgui_impl_opengl3.h" // adapter for  open GFLW 3
@@ -17,7 +18,7 @@
 #include <thread>
 #include <chrono>
 #include <mutex> // for protect the thread of the clean button 
-// Radar Libraries  adn extras
+// Radar Libraries  and extras
 #include "Radar.h"
 #include "Position.h"
 #include "Plane.h"
@@ -25,18 +26,17 @@
 #include <future>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-
+// libraries ofr upload images
 #if defined(__APPLE__)
-//none  your good
+// no libraries need it 
 #else 
-#include <glad/glad.h> 
+    #include "glcorearb.h" 
 
-#endif
-
-
+#endif 
 
 
-using namespace std; 
+
+using namespace std;
 
 bool running = true;
 mutex plane_mutex;
@@ -619,6 +619,7 @@ int main() {
 
                     for (size_t i = 0; i < planeList.size(); i++) {
                         std::string title = "Plane #" + std::to_string(i + 1);
+                        ImGui::PushID((int)i);
 
                         ImVec4 verdeNormal = ImVec4(2.0f/255, 100.0f/255, 12.0f/255, 1.0f); 
                         ImVec4 verdeHover  = ImVec4(2.0f/255, 82.0f/255, 12.0f/255, 1.0f);
@@ -655,9 +656,11 @@ int main() {
                                 std::lock_guard<std::mutex> lock(plane_mutex);
                                 delete planeList[i];
                                 planeList.erase(planeList.begin() + i);
+                                ImGui::PopID();
                                 break; 
                             }
                         }
+                        ImGui::PopID();
                     }
                 }
 
@@ -791,14 +794,14 @@ int main() {
                 ImGui::Spacing();
               
                 if (pickingStep == 0) {
-                    if (ImGui::Button("define the trayectory", ImVec2(-FLT_MIN, 40))) {
+                    if (ImGui::Button("Definir Trayectoria en Radar", ImVec2(-FLT_MIN, 40))) {
                     isPickingPosition = true;
                     pickingStep = 1; 
                     }
                 } else {
-                    string msg = (pickingStep == 1) ? "do a click for set ORIGIN" : "set the destiny ";
+                    string msg = (pickingStep == 1) ? "Haz clic para el ORIGEN" : "Haz clic para el DESTINO";
                     ImGui::TextColored(ImVec4(0, 1, 1, 1), ">>> %s <<<", msg.c_str());
-                    if (ImGui::Button("Cancel", ImVec2(-FLT_MIN, 0))) {
+                    if (ImGui::Button("Cancelar", ImVec2(-FLT_MIN, 0))) {
                         pickingStep = 0;
                         isPickingPosition = false;
                     }
