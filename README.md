@@ -1,46 +1,64 @@
-if you want to compile more easy, you need to put this  task.json, and launch.json files,  in your vscode configuration.
+For compile please use the next comands in the treminal (the compilation will takke 20 to 30 seconds for the use alot of files)
+if you want to compile more easy, you need to put this  task.json, and launch.json files,  in your vscode configuration. (some paths of the compiler need to be chaged, depended of where you storage the compiler )
 
-with this files the button on the top rigth corner works. (when you press the button there will be some options, choose the configuration name. (the name of the configuration changue  if you use windows, mac etc ... are in the folder "files json for compile")
-
-if you want to using comand use this one : 
-
-for mac :
-g++ prove.cpp \
-    dependecies/imgui/imgui*.cpp \
-    dependecies/imgui/backends/imgui_impl_glfw.cpp \
-    dependecies/imgui/backends/imgui_impl_opengl3.cpp \
-    -I dependecies/imgui \
-    -I dependecies/imgui/backends \
-    -I /opt/homebrew/include \
-    -L /opt/homebrew/lib \
-    -lglfw -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo \
-    -o prove
+got to Go to the Terminal menu at the top and select Configure Tasks...
+Select the option Create tasks.json file from template copy and paste the task.json and the launch.json 
 
 
-for windows : (I NEED TO PROVE IT )
 
-g++ prove.cpp ^
-dependecies/imgui/imgui*.cpp ^
-dependecies/imgui/backends/imgui_impl_glfw.cpp ^
-dependecies/imgui/backends/imgui_impl_opengl3.cpp ^
--I dependecies/imgui ^
--I dependecies/imgui/backends ^
--I dependecies/GFLW/include ^
--L dependecies/GFLW/lib-mingw-w64 ^
--lglfw3 -lopengl32 -lgdi32 -luser32 -lshell32 ^
--o prove.exe
+for mac : (you need home brew for this one )
 
-for linux: (I dont know if works :C):
+    
+With out homwbrew  :
+g++ -std=c++20 -fdiagnostics-color=always -g \
+    RadarApp.cpp \
+    dependencies/imgui/imgui.cpp \
+    dependencies/imgui/imgui_draw.cpp \
+    dependencies/imgui/imgui_tables.cpp \
+    dependencies/imgui/imgui_widgets.cpp \
+    dependencies/imgui/backends/imgui_impl_glfw.cpp \
+    dependencies/imgui/backends/imgui_impl_opengl3.cpp \
+    -I"dependencies/headers and backends" \
+    -Idependencies/imgui \
+    -Idependencies/imgui/backends \
+    -Idependencies/GFLW/include \
+    -lglfw \
+    -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo \
+    -o RadarApp
 
-g++ -g "${PWD}/prove.cpp" \
-    "${PWD}/dependecies/imgui/imgui"*.cpp \
-    "${PWD}/dependecies/imgui/backends/imgui_impl_glfw.cpp" \
-    "${PWD}/dependecies/imgui/backends/imgui_impl_opengl3.cpp" \
-    -I "${PWD}/dependecies/imgui" \
-    -I "${PWD}/dependecies/imgui/backends" \
-    -I "${PWD}/dependecies/GFLW/include" \
-    -lglfw -lGL -ldl -lpthread -lX11 \
-    -o prove
+for windows : 
 
+g++ -std=c++20 -fdiagnostics-color=always -g `
+    RadarApp.cpp `
+    dependencies/imgui/imgui.cpp `
+    dependencies/imgui/imgui_draw.cpp `
+    dependencies/imgui/imgui_tables.cpp `
+    dependencies/imgui/imgui_widgets.cpp `
+    dependencies/imgui/backends/imgui_impl_glfw.cpp `
+    dependencies/imgui/backends/imgui_impl_opengl3.cpp `
+    -I"dependencies/headers and backends" `
+    -I"dependencies/imgui" `
+    -I"dependencies/imgui/backends" `
+    -I"dependencies/GFLW/include" `
+    -L"dependencies/GFLW/glfw-3.4.bin.WIN64/lib-mingw-w64" `
+    -lglfw3 -lopengl32 -lgdi32 -luser32 -lshell32 -lwinmm -limm32 -lcomdlg32 `
+    -o RadarApp.exe
+
+for linux: (Ubuntu, Debian, Fedora, etc.):
+
+gg++ -std=c++20 -fdiagnostics-color=always -g \
+    RadarApp.cpp \
+    dependencies/imgui/imgui.cpp \
+    dependencies/imgui/imgui_draw.cpp \
+    dependencies/imgui/imgui_tables.cpp \
+    dependencies/imgui/imgui_widgets.cpp \
+    dependencies/imgui/backends/imgui_impl_glfw.cpp \
+    dependencies/imgui/backends/imgui_impl_opengl3.cpp \
+    -I"dependencies/headers and backends" \
+    -Idependencies/imgui \
+    -Idependencies/imgui/backends \
+    -Idependencies/GFLW/include \
+    -lglfw -lGL -lX11 -lpthread -lXrandr -lXi -ldl \
+    -o RadarApp
 
 
