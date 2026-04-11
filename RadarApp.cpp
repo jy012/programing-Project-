@@ -712,7 +712,7 @@ int main() {
                 float total_width = ImGui::GetContentRegionAvail().x;
                 float total_height = ImGui::GetContentRegionAvail().y;
                 ImVec2 button_size = ImVec2(total_width , total_height/4);// scale for the icons  the icons 
-                ImVec2 iconSize = ImVec2(radius *(0.7* 0.125f),radius *(0.7* 0.125f));
+                ImVec2 iconSize = ImVec2(radius *(1.1f* 0.125f),radius *(1.1f* 0.125f));
 
                 float padX = (button_size.x - iconSize.x) / 2.0f;
                 float padY = (button_size.y - iconSize.y) / 2.0f;
