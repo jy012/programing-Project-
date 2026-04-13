@@ -68,6 +68,9 @@ public:
     double getDiameter(){ //get the radar diameter
         return radarDiameter;
     }
+    double getElevation(){
+        return elevation;
+    }
     Position getPosition(){ //get the radar position
         return position;
     }
