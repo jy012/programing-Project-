@@ -57,24 +57,24 @@ void Plane_generator()
 // // auxiliar function for uplowd a texture to opnegl from a file
 bool LoadTextureFromFile(const char *filename, GLuint *out_texture, int *out_width, int *out_height)
 {
-    // Cargar imagen
+    // upload the png 
     int image_width, image_height, image_channels;
     unsigned char *image_data = stbi_load(filename, &image_width, &image_height, &image_channels, 4);
     if (image_data == NULL)
         return false;
 
-    // Crear textura de OpenGL
+    // this create the texture 
     GLuint image_texture;
     glGenTextures(1, &image_texture);
     glBindTexture(GL_TEXTURE_2D, image_texture);
 
-    // Configuración necesaria para que la imagen se vea bien
+    // configuration of rmek it look cool 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    // Subir píxeles a la GPU
+    // upload the pixels to the GPU
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
     stbi_image_free(image_data);
 
@@ -207,7 +207,7 @@ static bool isPickingPosition = false;
 float manual_vz = 0;
 static int pickingStep = 0;
 static Position startPos(0, 0, 0);
-static float manual_speed = 200.0f; // Magnitud de velocidad deseada
+static float manual_speed = 200.0f; // default velocity
 static float manual_z_pos = 0;
 
 void HandleRadarTwoClicks(ImDrawList *draw_list, ImVec2 center, float radius, long long range)
@@ -238,7 +238,7 @@ void HandleRadarTwoClicks(ImDrawList *draw_list, ImVec2 center, float radius, lo
     {
         if (mouseOverRadar)
         {
-            draw_list->AddCircleFilled(mousePos, 6.0f, IM_COL32(0, 255, 255, 150)); // made it dynamic 
+            draw_list->AddCircleFilled(mousePos, radius*(0.3f*0.125f), IM_COL32(0, 255, 255, 150)); // made it dynamic 
         }
     }
     else if (pickingStep == 2)
@@ -248,7 +248,7 @@ void HandleRadarTwoClicks(ImDrawList *draw_list, ImVec2 center, float radius, lo
             center.x + (float)(startPos.getX() / scale),
             center.y + (float)(startPos.getY() / scale));
 
-        draw_list->AddCircleFilled(originPx, 6.0f, IM_COL32(0, 255, 255, 255)); // made it dynamic 
+        draw_list->AddCircleFilled(originPx,radius*(0.3f*0.125f), IM_COL32(0, 255, 255, 255)); // made it dynamic 
 
         if (mouseOverRadar)
         {
