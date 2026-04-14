@@ -266,7 +266,7 @@ void HandleRadarTwoClicks(ImDrawList *draw_list, ImVec2 center, float radius, lo
     // process clicks
     if (mouseOverRadar && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())
     {
-        // Conversión directa: Píxel relativo -> Mundo
+        //convertion pixel to world 
         double worldX = (double)dx * scale;
         double worldY = (double)dy * scale;
 
@@ -298,7 +298,7 @@ void HandleRadarTwoClicks(ImDrawList *draw_list, ImVec2 center, float radius, lo
                 double angleDeg = angleRad * (180.0/pi);
                 
                 if (angleDeg < 0)
-                    angleDeg += 360.0; // Rango 0-360 coherente con Radar_loop
+                    angleDeg += 360.0; 
 
                 newPlane->lastDetectedAngle = (float)angleDeg;
                 newPlane->lastDetectedDistance = (float)sqrt(pow(startPos.getX(), 2) + pow(startPos.getY(), 2));
