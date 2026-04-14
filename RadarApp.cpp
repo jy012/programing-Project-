@@ -3,6 +3,15 @@
 #include "imgui_impl_glfw.h"    // adapter for  GFLW
 #include "imgui_impl_opengl3.h" // adapter for  open GFLW 3
 #include <imgui_internal.h>
+
+// libraries ofr upload images
+#if defined(__APPLE__)
+// no libraries need it
+#else
+#include "glcorearb.h"
+
+#endif
+
 #define GL_SILENCE_DEPRECATION // Silense of obsolet fucntions in opengl
 #include <GLFW/glfw3.h>        // librery f or create windows  adn  contexts opengl
 // c++ libraries
@@ -26,13 +35,6 @@
 #include <future>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-// libraries ofr upload images
-#if defined(__APPLE__)
-// no libraries need it
-#else
-#include "glcorearb.h"
-
-#endif
 
 using namespace std;
 
