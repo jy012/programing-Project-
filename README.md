@@ -1,5 +1,6 @@
 For compile please use the next comands in the treminal (the compilation will takke 20 to 30 seconds for the use alot of files)
 if you want to compile more easy, you need to put this  task.json, and launch.json files,  in your vscode configuration. (some paths of the compiler need to be chaged, depended of where you storage the compiler )
+make sure in windows is open with CDM. 
 
 got to Go to the Terminal menu at the top and select Configure Tasks...
 Select the option Create tasks.json file from template copy and paste the task.json and the launch.json 
