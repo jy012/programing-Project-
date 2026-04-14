@@ -75,9 +75,9 @@ double relativeFlatAngle_D(Position pos, Radar radar){
         return angle;
     }
     else if (angle < 0){ //if its between -180 and 0, make it postive and then add 180 to create the 180 to 360 range
-        return abs(angle) + 180;
+        angle += 360.0;
     }
-    return 0; //this should litreally never happen, this is just so the code actually compiles
+    return angle; //this should litreally never happen, this is just so the code actually compiles
 }
 
 double relativeHeightAngle(Position pos, Radar radar){ //find height angle between two points
