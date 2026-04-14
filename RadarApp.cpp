@@ -9,6 +9,7 @@
 // no libraries need it
 #else
 #include "glcorearb.h"
+#include "imgui_impl_opengl3_loader.h"
 
 #endif
 
